@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "catalog_state": "draft",
+  "entries": [
+    {
+      "source_id": "shared.network_protocol_security.v1",
+      "title": "网络协议与通信安全基础",
+      "topic": "协议通信",
+      "path": "network_protocol_security_v1.md",
+      "revision": "1.0.0",
+      "review_state": "approved",
+      "reviewer": "当前对话用户（2026-10-18明确确认）",
+      "reviewed_at": "2026-10-18T09:57:52Z",
+      "reference_urls": [
+        "https://www.rfc-editor.org/rfc/rfc8200.html",
+        "https://www.rfc-editor.org/rfc/rfc9293.html",
+        "https://www.rfc-editor.org/rfc/rfc8446.html",
+        "https://csrc.nist.gov/pubs/sp/800/207/final"
+      ],
+      "licence_note": "原创教学性归纳；RFC仅引用编号和短小事实并应遵守RFC Trust条款，NIST资料按其页面声明使用，不复制受版权保护的完整原文。"
+    },
+    {
+      "source_id": "shared.cryptography_identity.v1",
+      "title": "密码学与身份认证基础",
+      "topic": "密码身份",
+      "path": "cryptography_identity_v1.md",
+      "revision": "1.0.0",
+      "review_state": "approved",
+      "reviewer": "当前对话用户（2026-10-18明确确认）",
+      "reviewed_at": "2026-10-18T09:57:52Z",
+      "reference_urls": [
+        "https://csrc.nist.gov/pubs/fips/197/final",
+        "https://pages.nist.gov/800-63-4/sp800-63b.html",
+        "https://www.rfc-editor.org/rfc/rfc9106.html"
+      ],
+      "licence_note": "原创教学性归纳；只描述公开算法与认证原则，不复制标准全文、测试向量或第三方教材，正式使用前须复核各来源许可和修订状态。"
+    },
+    {
+      "source_id": "shared.vulnerability_cvss.v1",
+      "title": "漏洞、CVE与CVSS基础",
+      "topic": "漏洞CVSS",
+      "path": "vulnerability_cvss_v1.md",
+      "revision": "1.0.0",
+      "review_state": "approved",
+      "reviewer": "当前对话用户（2026-10-18明确确认）",
+      "reviewed_at": "2026-10-18T09:57:52Z",
+      "reference_urls": [
+        "https://www.cve.org/ResourcesSupport/AllResources/CNARules",
+        "https://nvd.nist.gov/developers/vulnerabilities",
+        "https://www.first.org/cvss/v4.0/specification-document"
+      ],
+      "licence_note": "原创教学性归纳；CVE编号、NVD字段和CVSS术语仅作引用与方法说明，动态漏洞事实必须通过阶段1官方查询重新核验。"
+    },
+    {
+      "source_id": "shared.system_application_defense.v1",
+      "title": "系统与应用防护基础",
+      "topic": "系统应用防护",
+      "path": "system_application_defense_v1.md",
+      "revision": "1.0.0",
+      "review_state": "approved",
+      "reviewer": "当前对话用户（2026-10-18明确确认）",
+      "reviewed_at": "2026-10-18T09:57:52Z",
+      "reference_urls": [
+        "https://csrc.nist.gov/pubs/sp/800/218/final",
+        "https://owasp.org/www-project-application-security-verification-standard/",
+        "https://www.cisecurity.org/controls/v8"
+      ],
+      "licence_note": "原创防御性教学归纳；仅链接公开项目页面并概述控制思想，不复制完整控制清单或付费内容，不提供攻击利用代码。"
+    },
+    {
+      "source_id": "shared.logging_incident_response.v1",
+      "title": "安全日志与事件响应基础",
+      "topic": "日志响应",
+      "path": "logging_incident_response_v1.md",
+      "revision": "1.0.0",
+      "review_state": "approved",
+      "reviewer": "当前对话用户（2026-10-18明确确认）",
+      "reviewed_at": "2026-10-18T09:57:52Z",
+      "reference_urls": [
+        "https://csrc.nist.gov/pubs/sp/800/61/r3/final",
+        "https://csrc.nist.gov/pubs/sp/800/92/final",
+        "https://www.cisa.gov/resources-tools/resources/federal-government-cybersecurity-incident-and-vulnerability-response-playbooks"
+      ],
+      "licence_note": "原创教学性归纳；引用政府公开指南的流程概念，不复制完整指南；日志示例为虚构且去身份化的教学数据。"
+    },
+    {
+      "source_id": "shared.fiveg_nas_security.v1",
+      "title": "5G NAS安全专题方法卡",
+      "topic": "5G NAS",
+      "path": "fiveg_nas_security_v1.md",
+      "revision": "1.0.0",
+      "review_state": "approved",
+      "reviewer": "当前对话用户（2026-10-18明确确认）",
+      "reviewed_at": "2026-10-18T09:57:52Z",
+      "reference_urls": [
+        "https://portal.3gpp.org/desktopmodules/Specifications/SpecificationDetails.aspx?specificationId=3370",
+        "https://portal.3gpp.org/desktopmodules/Specifications/SpecificationDetails.aspx?specificationId=3169"
+      ],
+      "licence_note": "原创教学方法卡；仅引用3GPP规范编号、目录和概念性摘要，不复制规范正文；具体条款、版本和变更须由教师按持有许可核验。"
+    },
+    {
+      "source_id": "shared.blockchain_covert_communication.v1",
+      "title": "区块链与隐蔽通信专题方法卡",
+      "topic": "区块链与隐蔽通信",
+      "path": "blockchain_covert_communication_v1.md",
+      "revision": "1.0.0",
+      "review_state": "approved",
+      "reviewer": "当前对话用户（2026-10-18明确确认）",
+      "reviewed_at": "2026-10-18T09:57:52Z",
+      "reference_urls": [
+        "https://nvlpubs.nist.gov/nistpubs/ir/2018/NIST.IR.8202.pdf",
+        "https://attack.mitre.org/techniques/T1027/"
+      ],
+      "licence_note": "原创防御性教学方法卡；只使用本地模拟交易与统计特征，不复制链上真实载荷、不连接真实资产网络，也不提供规避检测的操作指南。"
+    },
+    {
+      "source_id": "shared.llm_security.v1",
+      "title": "大语言模型安全专题方法卡",
+      "topic": "LLM安全",
+      "path": "llm_security_v1.md",
+      "revision": "1.0.0",
+      "review_state": "approved",
+      "reviewer": "当前对话用户（2026-10-18明确确认）",
+      "reviewed_at": "2026-10-18T09:57:52Z",
+      "reference_urls": [
+        "https://www.nist.gov/itl/ai-risk-management-framework",
+        "https://owasp.org/www-project-top-10-for-large-language-model-applications/",
+        "https://atlas.mitre.org/"
+      ],
+      "licence_note": "原创防御性教学方法卡；引用公开框架名称与风险类别，不复制第三方完整条目或攻击语料，测试提示词仅使用合成数据。"
+    },
+    {
+      "source_id": "shared.experiment_design.v1",
+      "title": "网络安全实验设计与评价方法卡",
+      "topic": "实验设计",
+      "path": "experiment_design_method_card_v1.md",
+      "revision": "1.0.0",
+      "review_state": "approved",
+      "reviewer": "当前对话用户（2026-10-18明确确认）",
+      "reviewed_at": "2026-10-18T09:57:52Z",
+      "reference_urls": [
+        "https://www.itl.nist.gov/div898/handbook/",
+        "https://csrc.nist.gov/pubs/sp/800/115/final",
+        "https://www.acm.org/publications/policies/artifact-review-and-badging-current"
+      ],
+      "licence_note": "原创通用方法卡；引用公开实验设计和技术测试方法，不复制完整手册；示例限定在隔离教学环境，不授权真实系统测试。"
+    }
+  ]
+}

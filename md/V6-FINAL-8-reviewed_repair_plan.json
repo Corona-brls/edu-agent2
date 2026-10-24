@@ -1,0 +1,158 @@
+{
+  "command": "8C",
+  "title": "V6-FINAL-8修复计划反向技术与安全评审",
+  "status": "APPROVED_FOR_IMPLEMENTATION",
+  "reviewed_plan": "C:\\Users\\Asd\\Desktop\\edu agent\\md\\V6-FINAL-8最小修复计划.md",
+  "review_report": "C:\\Users\\Asd\\Desktop\\edu agent\\md\\V6-FINAL-8修复计划反向评审.md",
+  "diagnostic_report": "C:\\Users\\Asd\\Desktop\\edu agent\\diagnostics\\v6final8-diagnostic-20261010T081112Z-5f6946f3\\persistent_evidence\\diagnostic_report.json",
+  "verdicts": {
+    "flow_04": {
+      "verdict": "REVISE_THEN_APPROVE",
+      "implementation_action": "FIX_PRODUCT",
+      "reason": "Practice输出缺少逐字段、逐步骤的服务器控制source/span绑定，现有Guard未覆盖六步正文。"
+    },
+    "flow_06": {
+      "verdict": "NOT_A_PRODUCT_DEFECT",
+      "implementation_action": "NO_CHANGE_AMEND_ORACLE",
+      "reason": "确定性REQUIRES_INPUT到continue的同run状态机与权限语义已通过；DeepSeek自由决策波动不得升级为状态机缺陷。"
+    },
+    "flow_08": {
+      "verdict": "NOT_A_PRODUCT_DEFECT",
+      "implementation_action": "AMEND_ORACLE",
+      "reason": "失败由问题与证据不匹配及fixture证据不足造成，使用已冻结的资料与问题组合补验。"
+    },
+    "flow_12": {
+      "verdict": "NOT_A_PRODUCT_DEFECT",
+      "implementation_action": "AMEND_ORACLE",
+      "reason": "历史口径允许浏览器硬刷新回到登录门；不得扩展为持久登录开发。"
+    }
+  },
+  "approved_product_repair": {
+    "scope": "flow_04_only",
+    "contract": {
+      "name": "GroundedPracticeGuide",
+      "fields": [
+        "research_goal",
+        "method_design",
+        "tools",
+        "experiment_steps",
+        "result_analysis",
+        "innovation_points",
+        "risks"
+      ],
+      "field_value": "list[GroundedSpanClaim]",
+      "proposal_channel": "FORBIDDEN_IN_THIS_REPAIR",
+      "requested_step_count": "Parse generic Arabic/common-Chinese step counts with a bounded 1-12 rule; the frozen input requires six steps."
+    },
+    "evidence_hydration": {
+      "rule": "Only hydrate the complete chunk for an already retrieved, INDEXED document/chunk in the authenticated current course.",
+      "authorization": "Re-check course and document ownership before hydration; never add an unselected chunk or document.",
+      "exposure": "Use request-local bounded sanitized spans only; never persist or return the complete chunk in state, traces, observations, diagnostics, or citation payloads."
+    },
+    "generation_and_retry": {
+      "deepseek_failure": "TemplateProvider must not replace a failed DeepSeek practice generation with a successful-looking answer.",
+      "retry": "At most one same-provider final-generation retry using the same frozen evidence spans; do not repeat Planner, retrieval, MCP, or tools.",
+      "terminal_failure": "After retry exhaustion, return an explicit abstention/failure state without late writes.",
+      "explicit_template_mode": "When TemplateProvider is explicitly configured as the primary provider, it may only produce a strict extractive GroundedPracticeGuide bound to validated spans."
+    },
+    "guard": {
+      "mode": "A separate practice branch using verified_practice_bindings.",
+      "isolation": "Do not weaken or alter existing GroundedSpanAnswer validation or generic citation thresholds.",
+      "negative_cases": [
+        "insufficient evidence",
+        "forged source_id",
+        "wrong span_id",
+        "claim-span mismatch",
+        "cross-course evidence",
+        "missing required field binding",
+        "incorrect requested step count"
+      ]
+    },
+    "diagnostics": {
+      "allowed": [
+        "error_code",
+        "practice_field",
+        "ordinal",
+        "source_id",
+        "span_id",
+        "hashes",
+        "lengths",
+        "boolean flags"
+      ],
+      "forbidden": [
+        "raw chunk text",
+        "raw claim text",
+        "document title",
+        "section text",
+        "URL",
+        "credentials or keys",
+        "cross-course content"
+      ]
+    }
+  },
+  "allowed_product_files": [
+    "backend/agent/orchestrator.py",
+    "backend/llm/schemas.py",
+    "backend/llm/template_provider.py",
+    "backend/guards/citation_guard.py"
+  ],
+  "allowed_test_files": [
+    "tests/test_practice_grounding_contract.py",
+    "tests/test_llm_provider.py",
+    "tests/test_r3_grounded_answer_contract.py",
+    "tests/test_api_endpoints.py"
+  ],
+  "forbidden_implementation_scope": [
+    "backend/rag/hybrid_retriever.py",
+    "backend/storage/logger.py",
+    "database migrations",
+    "backend/main.py public API changes",
+    "public request or response schemas",
+    "frontend authentication",
+    "global configuration",
+    "timeouts",
+    "Planner ask_user policy",
+    "continue state machine",
+    "MCP or real tool execution",
+    "persistent login or JWT in URL/localStorage"
+  ],
+  "required_tests": {
+    "targeted": [
+      "GroundedPracticeGuide schema and seven-field binding",
+      "generic requested-step-count parsing including frozen six-step input",
+      "insufficient evidence abstention",
+      "forged source, wrong span, mismatch, and cross-course rejection",
+      "one retry without repeated Planner/retrieval/MCP/tool calls",
+      "no late writes after terminal failure",
+      "TemplateProvider strict extractive behavior only when explicitly primary",
+      "existing GroundedSpanAnswer positive and negative regressions",
+      "TOOL_TIMEOUT behavior unchanged"
+    ],
+    "full_suite": {
+      "command": "python -m pytest -q -p no:cacheprovider",
+      "requirement": "Run in an isolated environment after targeted tests; zero failures and zero errors. Any new skip requires explicit explanation."
+    }
+  },
+  "required_browser_revalidation": [
+    "flow_04 frozen positive practice input with all seven fields and exactly six grounded experiment steps",
+    "flow_04 insufficient-evidence negative control",
+    "flow_06 one real-page deterministic REQUIRES_INPUT -> continue -> same-run terminal sequence, including cross-user denial",
+    "flow_08 frozen upload material and exact frozen question",
+    "one previously passing course citation compatibility smoke from flow_03",
+    "one citation negative regression",
+    "flow_12 student and teacher refresh/re-login/logout-deep-link tail under the historical oracle"
+  ],
+  "evidence_reuse": {
+    "locked": [
+      "H5",
+      "F01-F15",
+      "existing PASS_SAVED flows outside the minimal impact set"
+    ],
+    "full_v6_rerun": false
+  },
+  "implementation_authorization": {
+    "allow_command_8D": true,
+    "allow_command_8E_without_8D": false,
+    "command_8D_executed": false
+  }
+}

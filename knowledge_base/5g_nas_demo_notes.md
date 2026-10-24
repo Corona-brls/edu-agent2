@@ -1,0 +1,1 @@
+5G NAS authentication risk analysis should cite replay protection, identity exposure, security context handling, and local trace evidence. Safe labs use local captures only.

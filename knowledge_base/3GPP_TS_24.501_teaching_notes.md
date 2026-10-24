@@ -1,0 +1,1 @@
+This local teaching note summarizes where 3GPP TS 24.501 metadata is used in the course. It is not the copyrighted standard full text; students should use the official 3GPP link for metadata.

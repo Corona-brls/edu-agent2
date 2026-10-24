@@ -1,0 +1,234 @@
+{
+  "title": "扩展人工验收Paper最小修复计划反向评审",
+  "status": "APPROVED_FOR_IMPLEMENTATION",
+  "command_9J_allowed": true,
+  "review_method": "REVISE_THEN_APPROVE",
+  "basis": {
+    "diagnosis": "diagnostics/manual-acceptance-command9g-20261013T053755Z-4b5659e6/diagnostic_report.json",
+    "pipeline_matrix": "diagnostics/manual-acceptance-command9g-20261013T053755Z-4b5659e6/paper_pipeline_matrix.json",
+    "original_plan_md": "md/扩展人工验收Paper最小修复计划.md",
+    "original_plan_json": "md/扩展人工验收Paper最小修复计划.json",
+    "failed_run_id": "096b7b4c-87c5-4d5d-89ff-77e6a8c6a6d3",
+    "failed_trace_id": "d037fa2b-3af8-4f0c-9db3-191bede7f983",
+    "business_defect_count": 1,
+    "multi_source_status": "DEPENDENCY_BLOCKED_NOT_DIAGNOSED"
+  },
+  "decisions": [
+    {"item": "author_storage_and_legacy_compatibility", "original": "REVISE", "final": "APPROVE"},
+    {"item": "author_hash_coverage", "original": "REVISE", "final": "APPROVE"},
+    {"item": "bounded_author_summary_span", "original": "REVISE", "final": "APPROVE"},
+    {"item": "per_selected_paper_field_completeness", "original": "REVISE", "final": "APPROVE"},
+    {"item": "actual_https_citation_dto_validation", "original": "REVISE", "final": "APPROVE"},
+    {"item": "paper_count_and_shortfall_semantics", "original": "REVISE", "final": "APPROVE"},
+    {"item": "bounded_bilingual_query_and_relevance", "original": "REVISE", "final": "APPROVE"},
+    {"item": "source_auto_and_call_count_boundary", "original": "REVISE", "final": "APPROVE"},
+    {"item": "same_evidence_single_generation_retry", "original": "APPROVE", "final": "APPROVE"},
+    {"item": "stable_terminal_error_semantics", "original": "REVISE", "final": "APPROVE"},
+    {"item": "multi_source_compatibility_and_acceptance", "original": "REVISE", "final": "APPROVE"},
+    {"item": "four_product_three_test_whitelist", "original": "APPROVE", "final": "APPROVE"},
+    {"item": "9J_success_token_and_scope_stop_wording", "original": "REVISE", "final": "APPROVE"}
+  ],
+  "reviewed_contract": {
+    "author_storage": {
+      "new_shape": "JSON array of canonical bounded author names",
+      "max_authors": 20,
+      "max_chars_per_author": 160,
+      "legacy_shapes": {
+        "list": "normalize and read",
+        "object_with_authors_list": "normalize and read as legacy_uncovered until verified resync",
+        "empty_or_malformed": "empty authors and fail closed for author claims"
+      },
+      "no_database_migration": true
+    },
+    "authors_hash_coverage": {
+      "server_owned": true,
+      "conditions": [
+        "authors parse to a nonempty bounded list",
+        "server recomputes the current-version content hash from the row's trusted fields",
+        "recomputed hash equals the stored content_hash",
+        "existing provenance verification succeeds"
+      ],
+      "forbidden_shortcut": "Never infer coverage from authors_json list shape alone.",
+      "hash_payload": "The same full bounded canonical author list used by resource_content is included in content_hash."
+    },
+    "author_summary_span": {
+      "semantic_type": "paper_author_summary",
+      "schema_change": false,
+      "exact_text_max_chars": 300,
+      "claim_text_schema_max_chars": 360,
+      "complete_format": "Author information: <whole names>",
+      "excerpt_format": "Author information (excerpt, showing k of n): <whole names>",
+      "rules": [
+        "never cut a name in the middle",
+        "mark truncation explicitly",
+        "reserve one of eight text spans for the author summary and at most seven for abstract/text",
+        "only current-hash-verified structured paper authors may create this semantic type",
+        "candidate author claim must equal the whole exact_text after approved normalization",
+        "server must not create, replace, extend or rebind model claims"
+      ]
+    },
+    "paper_request_and_selection": {
+      "generic_requested_fields": ["title", "authors", "abstract_clue", "link"],
+      "max_selected_papers": 3,
+      "minimum_for_live_pass": 1,
+      "selection_order": ["relevance_filter", "field_availability", "stable_deduplication", "deterministic_rank", "select_up_to_target"],
+      "completeness_scope": "Only selected_paper_source_ids are checked and exposed to model/bindings/renderer/citations.",
+      "unselected_behavior": "Filtered or unselected papers must not remain in answer evidence, verified bindings, final answer, or citation cards.",
+      "link_contract": "Parse the selected paper Citation DTO source_url and require HTTPS plus host; verify it belongs to the same selected EvidenceItem/provenance identity and is consistent with external_id/content_hash. A boolean marker alone is insufficient.",
+      "server_may_generate_facts": false
+    },
+    "count_and_terminal_semantics": {
+      "three_selected": "COMPLETED / ANSWERED",
+      "one_or_two_selected_relevance_shortfall": "COMPLETED / PAPER_PARTIAL_RELEVANCE_RESULTS",
+      "one_or_two_selected_field_shortfall": "COMPLETED / PAPER_PARTIAL_FIELD_RESULTS",
+      "zero_related": "ABSTAINED / PAPER_NO_RELEVANT_RESULTS",
+      "related_but_zero_field_complete": "ABSTAINED / PAPER_REQUIRED_FIELD_UNAVAILABLE",
+      "required_metadata": ["requested_count", "relevant_count", "field_complete_count", "selected_count", "shortfall_reason"],
+      "planner_must_not_guess": true,
+      "unrelated_fillers_forbidden": true
+    },
+    "query_and_relevance": {
+      "paper_only_query_cleanup": true,
+      "preserve": ["quoted technical phrases", "DOI", "arXiv ID", "CVE", "unknown significant topic terms"],
+      "strip": ["requested result count", "requested output fields", "local-sample prohibitions", "non-paper source clauses"],
+      "bounded_dictionary_groups": {
+        "domain_entity_examples": ["5G/fifth generation/第五代移动通信", "core network/5GC/核心网", "NAS/non-access stratum/非接入层", "network slicing/网络切片", "RAN", "SDN/NFV"],
+        "security_task_examples": ["attack/攻击", "detection/检测", "authentication/认证", "replay/重放", "vulnerability/漏洞", "intrusion/anomaly/入侵/异常", "privacy/隐私"]
+      },
+      "normalization": "Frozen versioned constants, longest phrase first, bounded bilingual stopwords and output-instruction stop phrases; no model-generated dictionary.",
+      "minimum_gate": [
+        "exact DOI/arXiv/title locators only bypass scoring for the matching identity",
+        "if both domain/entity and security/task groups exist, candidate must match at least one concept in each",
+        "if only one meaningful group exists, candidate must match that group",
+        "generic 5G or stopword overlap alone is insufficient"
+      ],
+      "stable_rank": ["canonical group coverage", "bounded technical phrase/token overlap", "existing connector/evidence score as tie-break", "external_id final tie-break"],
+      "overfetch_top_k": "min(10, max(6, target_count * 3))",
+      "offline_cross_language_fixtures_minimum": 4,
+      "required_fixture_topics": ["5G核心网攻击检测", "NAS重放检测", "网络切片DDoS缓解", "5G认证异常检测"],
+      "required_negative_family": "NOMA/spectral-efficiency and other broadly 5G but security-irrelevant papers"
+    },
+    "source_auto": {
+      "agent_paper_search_real_calls": 1,
+      "mcp_requests": 1,
+      "internal_fallback": "Semantic Scholar may fall back to arXiv only after connector failure, rate limit, transport failure, or existing explicit failure semantics.",
+      "success_but_irrelevant": "Filter to partial/no-relevant result; do not make a second Agent tool call or secretly force arXiv.",
+      "service_connector_mcp_changes": false
+    },
+    "retry_and_guard": {
+      "maximum_generation_candidates": 2,
+      "same_selected_evidence": true,
+      "repeat_planner_mcp_connector_tool": false,
+      "retry_feedback": "Bounded server-owned error type and missing selected source/field enums in the actual provider messages; no model body, full abstract, secret, or internal object.",
+      "second_failure": "ABSTAIN with the actual final error; never restore candidate 0, add candidate 2, or use Template as success.",
+      "citation_guard_change": false,
+      "citation_guard_fail_closed": true
+    }
+  },
+  "frozen_file_whitelist": {
+    "product": [
+      {
+        "path": "backend/storage/logger.py",
+        "allowed": ["authors_json array write", "legacy/malformed safe read", "server-recomputed current hash coverage marker"]
+      },
+      {
+        "path": "backend/resources/normalizer.py",
+        "allowed": ["pure bounded author canonicalization", "resource_content author inclusion", "content_hash author inclusion"]
+      },
+      {
+        "path": "backend/agent/orchestrator.py",
+        "allowed": ["Paper request parser", "Paper query construction", "bounded overfetch arguments", "bilingual relevance/dedup/selection", "author summary span semantics", "Paper preflight terminals", "per-selected-paper field and actual Citation URL validation", "one same-evidence retry"]
+      },
+      {
+        "path": "backend/llm/prompts.py",
+        "allowed": ["GroundedSpanAnswer Paper-only selected-source/field/semantic contract", "safe retry guidance in actual model messages"]
+      }
+    ],
+    "tests": [
+      "tests/test_j1_resource_provenance.py",
+      "tests/test_agent_orchestration.py",
+      "tests/test_r3_grounded_answer_contract.py"
+    ],
+    "forbidden": [
+      "backend/guards/citation_guard.py",
+      "backend/llm/schemas.py",
+      "backend/agent/router.py",
+      "backend/agent/state.py",
+      "backend/resources/service.py",
+      "backend/connectors/arxiv.py",
+      "backend/connectors/semantic_scholar.py",
+      "mcp_server",
+      "frontend",
+      "database schema or migration",
+      "configuration or .env",
+      "timeouts, retry budgets, global tool budgets",
+      "RBAC, Practice, innovation, teacher"
+    ],
+    "scope_stop": "Stop with SCOPE_REVIEW_REQUIRED if implementation needs an eighth file, a fifth product file, or a fourth test file."
+  },
+  "test_gates": {
+    "automation_mode": "Offline controlled fixtures only; no DeepSeek, live Connector, MCP process, FastAPI, Streamlit, or browser in 9J.",
+    "red_green_required": [
+      "new authors array SQLite roundtrip; legacy wrapper compatibility; malformed safe empty",
+      "list shape with current-hash mismatch remains authors_hash_covered=false; verified resync and exact recompute match makes it true",
+      "author-only change changes resource_content and content_hash",
+      "long abstract preserves a <=300-character author summary span; excerpt marker and whole-name truncation are enforced",
+      "malicious/overlong author text cannot become instructions or spoof semantic type",
+      "only selected papers are exposed and each selected paper has title/author-summary/abstract fields when requested",
+      "actual same-paper Citation DTO HTTPS URL is validated; boolean-only or mismatched URL fails",
+      "three-paper full pass and honest one/two-paper partial passes",
+      "zero relevant, partial count, and field-unavailable terminals are deterministic and distinct",
+      "four Chinese-topic to English-paper positive fixtures and NOMA-like negative fixtures",
+      "source=auto has one Agent paper_search_real call and one MCP request; success-but-irrelevant does not trigger another Agent tool call",
+      "existing connector-failure to arXiv fallback remains compatible",
+      "one same-evidence generation retry only; second incomplete candidate abstains",
+      "wrong source/span, forged author, duplicate paper, no abstract, prompt injection, and untrusted/non-HTTPS provenance reject"
+    ],
+    "compatibility": [
+      "GitHub, NVD, Standard external grounding",
+      "local course and course-only answers",
+      "Practice contract and two-candidate retry",
+      "existing Citation Guard positive and negative cases",
+      "S2 citation display",
+      "current-run paper/vulnerability/project multi-source coverage without historical PASS stitching"
+    ],
+    "full_pytest": "Run once on final stable code with a fresh isolated basetemp; require 0 failed and 0 errors; report skip/xfail/warnings separately and do not count skips as passes."
+  },
+  "implementation_gate": {
+    "success_token": "IMPLEMENTATION_READY_FOR_PAPER_FINAL_ACCEPTANCE",
+    "next_flag": "command_9K_allowed=true",
+    "must_not_run_in_9J": ["live DeepSeek", "live paper search", "FastAPI", "Streamlit", "MCP process", "browser acceptance"]
+  },
+  "acceptance_9K": {
+    "paper_question": "请使用真实论文搜索检索 5G core network attack detection，返回 3 篇论文的标题、作者、摘要线索和可核验来源链接；不要用本地论文样例代替真实联网结果。",
+    "paper_runs": 1,
+    "paper_pass": [
+      "1 to 3 unique real relevant papers",
+      "every selected paper has a verbatim-grounded title, bounded author information summary, and abstract clue",
+      "every selected paper has the actual same-paper Citation DTO HTTPS URL",
+      "if fewer than 3, stable partial result status and counters honestly disclose the shortfall",
+      "DeepSeek, fallback_used=false, Citation Guard pass",
+      "Agent paper_search_real call count equals 1 and MCP request count equals 1"
+    ],
+    "not_absolute_failure_counts": ["Planner decisions", "low-level Connector attempts inside the approved source=auto fallback"],
+    "multi_source_only_after_paper_pass": true,
+    "multi_source_question": "请检索真实的5G安全论文、NVD中的CVE-2021-44228，以及GitHub上的Open5GS项目；请分别从Paper、NVD和GitHub各给出一条由单一来源span逐字支持的原子事实并显示引用和可核验来源，不要进行跨来源推理，也不要补充无证据的实验建议。",
+    "multi_source_runs": 1,
+    "multi_source_pass": "The current run obtains paper, vulnerability and project evidence and emits at least one single-span verbatim-supported fact with a correct HTTPS citation for each source type.",
+    "final_pass": "Only Paper and Multi-source PASS merged with saved 9E, 9D-S1 and 8V evidence may yield POST_V6_MANUAL_ACCEPTANCE_PASS."
+  },
+  "security_invariants": [
+    "Do not weaken Citation Guard, source/span support, provenance, permissions, or course isolation.",
+    "Do not fabricate authors, abstracts, URLs, counts, or relevance.",
+    "Do not silently rewrite model claim_text, source_id, or evidence_span_id.",
+    "Do not expose filtered/unselected papers to answer generation or citation cards.",
+    "Do not treat evidence text or author metadata as instructions.",
+    "Do not classify the unexecuted Multi-source flow as a product defect."
+  ],
+  "rollback": {
+    "files": "Revert only the four approved product files and three approved test files from the 9J change set.",
+    "database": "No schema/data migration and therefore no database rollback.",
+    "cache": "No bulk cache deletion; normal TTL and verified upsert behavior remains authoritative."
+  },
+  "final_verdict": "APPROVED_FOR_IMPLEMENTATION"
+}

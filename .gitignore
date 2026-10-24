@@ -1,0 +1,57 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local configuration and credentials. Keep the documented template only.
+.env
+.env.*
+!.env.example
+md/人工验收手册二阶段-本机凭据.local.md
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Runtime databases, caches, and vector indexes.
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+backend/data/*
+!backend/data/.gitkeep
+_tmp*_vector/
+
+# Course uploads and acceptance-only knowledge files are runtime data.
+knowledge_base/course-*/
+knowledge_base/audit_acceptance_*.md
+
+# Generated diagnostics, backups, and scratch work.
+tmp/
+.tmp/
+backups/
+.repair-backups/
+diagnostics/
+_tmp*
+=ro
+=
+*.bak
+*.before
+*.zip
+
+# Local acceptance screenshots and recordings may contain account or course data.
+md/evidence/
+
+# Logs and editor/OS state.
+*.log
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

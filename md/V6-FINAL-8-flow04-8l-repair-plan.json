@@ -1,0 +1,203 @@
+{
+  "command": "8N",
+  "title": "V6-FINAL-8 Flow 04 8L剩余语义缺陷最小修复计划",
+  "status": "READY_FOR_REVERSE_REVIEW",
+  "command_8O_allowed": true,
+  "inputs": {
+    "diagnosis": "diagnostics/v6final8-command8m-20261010T134951Z-d324f6db/diagnostic_report.json",
+    "claim_span_matrix": "diagnostics/v6final8-command8m-20261010T134951Z-d324f6db/attempt_claim_span_matrix.json",
+    "prior_review": "md/V6-FINAL-8-flow04-reviewed-plan.json",
+    "prior_implementation": "diagnostics/v6final8-command8i-implementation_report.json",
+    "live_failure": "diagnostics/v6final8-command8l-20261010T131815Z-23084f96/persistent_evidence/flow_04/result.json"
+  },
+  "preconditions": {
+    "diagnosis_status": "DIAGNOSIS_COMPLETE",
+    "command_8N_allowed": true,
+    "confirmed_business_defect_count": 1
+  },
+  "already_fixed_and_preserved": [
+    "GroundedPracticeGuide专用系统级contract已进入实际DeepSeek messages",
+    "证据正文留在标记为不可信数据的user message中",
+    "服务端脱敏首失败tuple已进入attempt 1实际消息",
+    "attempt 0/1消息哈希不同且provider hash与orchestrator hash一致",
+    "最多两个生成候选且生成重试不重复Planner、retrieve、MCP、Connector或真实工具",
+    "模型仍提交claim_text/source_id/evidence_span_id，服务器验证、绑定quote、渲染或拒答",
+    "Citation Guard、Practice Guard、Schema与Template fallback保持不变"
+  ],
+  "new_8L_defect_scope": [
+    "PRACTICE_CLAIM_EXTRACTIVENESS_CONTRACT_INSUFFICIENT",
+    "UNSUPPORTED_RETRY_SPAN_POLICY_CONFLICT",
+    "SINGLE_FAILURE_RETRY_FEEDBACK_INCOMPLETE",
+    "FINAL_GUARD_FAILURE_OBSERVABILITY_GAP"
+  ],
+  "allowed_files": {
+    "product": [
+      "backend/llm/prompts.py",
+      "backend/agent/orchestrator.py"
+    ],
+    "tests": [
+      "tests/test_practice_grounding_contract.py"
+    ]
+  },
+  "forbidden_files_and_surfaces": [
+    "backend/guards/citation_guard.py",
+    "backend/llm/schemas.py",
+    "backend/llm/deepseek_provider.py",
+    "backend/llm/template_provider.py",
+    "backend/agent/router.py",
+    "retriever",
+    "Connector",
+    "MCP",
+    "frontend",
+    "public API",
+    "database and migrations",
+    "configuration and .env",
+    "timeouts",
+    "acceptance fixtures"
+  ],
+  "approved_design": {
+    "claim_contract": [
+      "GroundedPracticeGuide的claim_text默认逐字复制所选span的完整exact_text；只有在一个span包含多个可独立事实时，才允许复制一个同语言、连续、未改写的原文片段。",
+      "禁止同义改写、翻译、概括、补主语、补结论、重排token、加入步骤前缀或资料外词语。",
+      "短步骤span应直接使用完整exact_text；一个列举型工具span应优先形成一个claim，不把列举项自由改写成多个claim。",
+      "每个claim仍只绑定一个合法source_id与一个属于该source的evidence_span_id。",
+      "上述规则只约束模型输出；服务器不生成、不替换、不修补claim_text。"
+    ],
+    "retry_classification": {
+      "UNSUPPORTED_CITATION_with_verified_binding": "保留同一合法source/span；把claim_text改为完整exact_text或合规连续原文片段。不得把正确span标记为必须更换。",
+      "IRRELEVANT_CITATION": "为该字段改选目录中与问题和字段相关的合法span。",
+      "GROUNDING_UNKNOWN_SOURCE_or_UNKNOWN_SPAN_or_SPAN_SOURCE_MISMATCH": "丢弃非法绑定并从服务器目录重新选择合法source/span。",
+      "other_structured_or_binding_failures": "按基础contract重建候选；不得猜测或静默修复ID。"
+    },
+    "full_candidate_reaudit": [
+      "attempt 1必须重新输出完整七字段对象，而不是局部补丁。",
+      "重试系统消息必须明确要求逐项复核七字段、全部六步、required source coverage、重复claim和每个claim的逐字抽取性。",
+      "仍只反馈首个失败tuple；不暴露候选正文或完整chunk，但要求全候选自审可避免只修首项后遗留后续改写。"
+    ],
+    "observability": [
+      "每个被拒候选均写入attempt编号、error_code及一个固定allowlist的failure_detail。",
+      "Guard拒绝时保存practice_field、ordinal、source_id、span_id、claim_length、claim_sha256、normalized_claim_sha256和布尔normalization_flags。",
+      "Practice结构/绑定预校验拒绝时使用相同记录结构；能定位首个claim时填充其字段与哈希，不能安全定位时使用空ID/0 ordinal并显式failure_detail_available=false，不得拼接异常正文。",
+      "attempt 0和最终attempt 1均记录，移除只允许首轮trace的guard_failure_traced抑制行为。",
+      "model_call的provider success与candidate acceptance继续分开；失败tuple可进入脱敏metadata/trace，但原始候选JSON、claim_text和完整chunk不得进入日志、state、observation或API。"
+    ],
+    "server_controlled_extraction_decision": {
+      "required": false,
+      "decision": "NOT_APPROVED_IN_THIS_PLAN",
+      "reason": "现有模型/服务器职责边界可通过明确逐字抽取contract和fail-closed验证闭环；服务器从模型选择的span生成或覆盖claim_text会改变事实作者与审计语义。若8O要采用，必须标记为显式契约变更并重新批准，不能称为规范化。"
+    }
+  },
+  "root_cause_change_test_map": [
+    {
+      "cause": "PRACTICE_CLAIM_EXTRACTIVENESS_CONTRACT_INSUFFICIENT",
+      "file": "backend/llm/prompts.py",
+      "change": "在GroundedPracticeGuide专用系统contract中加入完整exact_text/连续原文片段、同语言、禁止任何自由改写的确定性规则。",
+      "red_green_tests": [
+        "prompt contract必须出现逐字抽取和连续原文片段规则",
+        "正确span加不受支持改写的attempt 0被拒，attempt 1用同一span逐字抽取后通过"
+      ]
+    },
+    {
+      "cause": "UNSUPPORTED_RETRY_SPAN_POLICY_CONFLICT",
+      "file": "backend/llm/prompts.py",
+      "change": "按错误码生成分流纠错；UNSUPPORTED保留合法span并改claim，IRRELEVANT/unknown/mismatch才要求重选。",
+      "red_green_tests": [
+        "attempt 1实际系统消息对UNSUPPORTED明确保留S1:text:3",
+        "IRRELEVANT路径仍要求从S2改选合法相关span"
+      ]
+    },
+    {
+      "cause": "SINGLE_FAILURE_RETRY_FEEDBACK_INCOMPLETE",
+      "files": ["backend/llm/prompts.py", "backend/agent/orchestrator.py"],
+      "change": "在保留脱敏首tuple的同时，要求第二候选完整重建并重新审计七字段和全部步骤；不收集或发送完整失败列表。",
+      "red_green_tests": [
+        "attempt 0同时包含多个改写错误时，attempt 1消息包含全候选审计要求",
+        "attempt 1返回全量合规对象后通过",
+        "两次均不合规时仍ABSTAIN"
+      ]
+    },
+    {
+      "cause": "FINAL_GUARD_FAILURE_OBSERVABILITY_GAP",
+      "file": "backend/agent/orchestrator.py",
+      "change": "按attempt持久化脱敏拒绝详情，并记录最终候选的failure tuple；不得记录候选正文。",
+      "red_green_tests": [
+        "attempt 1仍失败时最终failure tuple存在",
+        "两次拒绝对应两个attempt编号且均无原始claim_text/候选JSON/完整chunk"
+      ]
+    }
+  ],
+  "new_or_revised_test_nodes": [
+    "test_grounded_practice_prompt_requires_verbatim_or_contiguous_extract",
+    "test_practice_unsupported_retry_keeps_verified_span_and_extracts_claim",
+    "test_practice_irrelevant_retry_reselects_span",
+    "test_practice_retry_reaudits_all_fields_after_multiple_unsupported_claims",
+    "test_practice_final_guard_failure_tuple_is_persisted_without_candidate_text",
+    "test_deepseek_practice_retry_actual_messages_differ_and_include_classified_feedback",
+    "test_practice_two_unsupported_candidates_still_abstain",
+    "test_practice_rejection_diagnostics_never_include_full_chunk_or_raw_candidate"
+  ],
+  "required_negative_and_compatibility_coverage": [
+    "Guard对正确span加不支持改写仍拒绝，证明阈值未放宽",
+    "forged/unknown source、wrong span、source/span mismatch、S2干扰、duplicate仍拒绝",
+    "证据不足、prompt injection、跨课程、非INDEXED与伪造外部provenance仍拒绝",
+    "course-only与course+paper/standard/vulnerability/project继续通过",
+    "普通GroundedSpanAnswer、Flow 03课程引用、Flow 08上传资料引用不继承Practice规则",
+    "Planner/retrieve/MCP/Connector/tool次数在生成重试期间不增加"
+  ],
+  "implementation_validation_order": [
+    "先运行新增根因测试并保存预修复红灯",
+    "在白名单内实施后重跑新增根因节点",
+    "运行tests/test_practice_grounding_contract.py全文件",
+    "运行共享prompt/Agent兼容性节点及Flow 03/08代码级smoke；只运行白名单外测试，不修改它们",
+    "在最终稳定版本上使用全新隔离basetemp运行一次完整pytest，要求0 failed、0 errors；skip/xfail/warnings单列且skip不计通过"
+  ],
+  "implementation_gate_for_8P": [
+    "所有根因节点、Practice定向回归、兼容性节点和最终完整pytest通过",
+    "两次实际fake DeepSeek客户端messages哈希不同且attempt 1含分类反馈和全量自审指令",
+    "最终attempt失败tuple安全可观测，且隐私扫描证明没有原始候选正文或完整chunk",
+    "Guard/Schema/provider/API/数据库及白名单外文件不变",
+    "正式数据库哈希、大小、mtime和业务计数不变",
+    "输出IMPLEMENTATION_READY_FOR_FLOW04_ACCEPTANCE并允许8Q"
+  ],
+  "browser_acceptance_gate_for_8Q": [
+    "只重验Flow 04正向；复用其余锁定PASS、8I/8P代码回归及既有证据不足负对照",
+    "全新隔离runtime中同时INDEX与8L相同语义的S1完整资料和S2干扰资料",
+    "真实学生页面提交固定问题一次；创建业务run后禁止以另一个run挑选成功结果",
+    "要求DeepSeek、fallback=false、七字段、恰好六步、每项合法source/span及Guard通过",
+    "若发生retry，证明UNSUPPORTED保留合法span并改为逐字抽取、全候选重审、消息哈希不同、最终failure tuple可观测且上游调用不重复",
+    "若正向通过，用新证据替换F16/F17的Flow 04阻断并保留8L失败附录；否则保存单一失败run并停止"
+  ],
+  "security_invariants": [
+    "Citation Guard和Practice Guard保持fail-closed，相关性、支持性和token阈值不变",
+    "服务器不得静默改写模型claim或执行S2到S1替换",
+    "证据仍是不可信数据，不能覆盖系统contract或retry指令",
+    "完整chunk只存在于请求内受控证据，不进入state、log、trace、observation或API",
+    "不记录密钥、Authorization header、原始候选JSON或claim正文",
+    "最多两个生成候选，重试不重放任何上游或非幂等动作",
+    "证据不足继续ABSTAIN，Template不得冒充DeepSeek成功"
+  ],
+  "non_goals": [
+    "不修Flow 08引用卡片序号P2",
+    "不改检索排序或删除S2",
+    "不新增服务器生成claim_text",
+    "不改Citation Guard、Schema、DeepSeek provider、API、认证、数据库或前端",
+    "不扩大到完整浏览器矩阵"
+  ],
+  "rollback": {
+    "method": "仅撤销8O最终批准后在三个白名单文件中的8P增量补丁，恢复到8I冻结基线；不得回退8D-S2混合证据契约或8I专用Practice contract。",
+    "baseline_hashes": {
+      "backend/llm/prompts.py": "010b1ed0285bf32c5ecf8c228ff1024fcc0df0fb39d8882e7e8e114dea625e6b",
+      "backend/agent/orchestrator.py": "0711bf2cd7dc1389e3d3fa189a7c77585d3c9ee1086db8132c349148cfb79063",
+      "tests/test_practice_grounding_contract.py": "c468198e62c0b219a8e546517a63864257df835e996e2d4f75ea8a803aab64e3"
+    },
+    "migration_required": false
+  },
+  "questions_for_8O": [
+    "完整exact_text优先、连续原文片段为受限备选，是否与Guard严格token子集保持足够确定的一致性？",
+    "UNSUPPORTED保留合法span、IRRELEVANT/unknown/mismatch重选span的错误分流是否覆盖所有现有错误码且不误导模型？",
+    "只给首tuple但强制全候选重建/自审，是否足够关闭多错误候选，而无需泄露完整失败列表？",
+    "对每个attempt同时写脱敏model_call metadata和trace是否必要；是否应以一处为规范证据、另一处只保存引用ID以避免重复？",
+    "是否明确拒绝服务器受控生成/覆盖claim_text；若改为批准，必须按显式契约变更重新定义审计、渲染和测试。"
+  ],
+  "auto_execute_next": false
+}

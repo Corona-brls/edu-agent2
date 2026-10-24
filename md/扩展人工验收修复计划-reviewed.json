@@ -1,0 +1,234 @@
+{
+  "review_name": "扩展人工验收修复计划反向评审",
+  "status": "APPROVED_FOR_IMPLEMENTATION",
+  "command_9D_allowed": true,
+  "authoritative_over_9B_on_conflict": true,
+  "workflow_verdicts": {
+    "external_grounding": "APPROVE",
+    "citation_display_sequence": "APPROVE",
+    "innovation_empty_sources": "NO_CHANGE_CONFIRMED",
+    "anonymous_teacher_deep_link": "APPROVE"
+  },
+  "defect_accounting": {
+    "confirmed_product_defect_groups": 3,
+    "acceptance_input_or_evidence_gap_groups": 1,
+    "external_grounding_business_defects": 1,
+    "plan_changing_unresolved_items": 0
+  },
+  "binding_revisions_to_9B": [
+    "For externally grounded answers, _answer_evidence must include only trusted evidence of explicitly required source types; a single required type may retain multiple candidates, and course evidence is included only when course is explicitly required.",
+    "The attempt-1 ValidationError is not evidence of a schema defect. Keep backend/llm/schemas.py unchanged, fail closed, never accept attempt 0, and persist only bounded loc/type diagnostics.",
+    "Paper authors must come from the structured authors field, not inferred text; standard status is restricted to an explicit raw_metadata allowlist; existing NVD mapping remains unchanged.",
+    "New server responses must always populate Citation.source_id even though the response field remains optional for legacy object compatibility."
+  ],
+  "allowed_product_files": {
+    "backend/agent/orchestrator.py": [
+      "_requires_grounded_answer",
+      "_answer_evidence",
+      "_resource_evidence_text",
+      "_answer",
+      "_retry_grounded_answer_once",
+      "private bounded sanitization and diagnostic helpers used only by those functions",
+      "_citation_from_evidence and non-semantic _to_chat_response plumbing"
+    ],
+    "backend/llm/prompts.py": [
+      "_grounded_span_answer_contract",
+      "private safe retry-feedback helper only"
+    ],
+    "backend/guards/citation_guard.py": [
+      "_validate_grounded_renderer_units",
+      "_validate_grounded_citation",
+      "_grounding_failure and private redacted failure-detail helper",
+      "_external_id_span_is_compatible",
+      "_grounded_identity_templates",
+      "_grounded_canonical_identity_values",
+      "private anchored DOI canonicalization helper"
+    ],
+    "backend/schemas.py": [
+      "Citation.source_id additive legacy-compatible response field only"
+    ],
+    "frontend/pages/student.py": [
+      "_render_citations source label and legacy fallback only"
+    ],
+    "frontend/pages/teacher.py": [
+      "direct-execution __main__ render guard only"
+    ]
+  },
+  "allowed_test_files": [
+    "tests/test_r3_grounded_answer_contract.py",
+    "tests/test_s2_multi_source_citations.py",
+    "tests/test_agent_orchestration.py",
+    "tests/test_api_endpoints.py",
+    "tests/test_student_frontend_session.py",
+    "tests/test_teacher_frontend_session.py"
+  ],
+  "forbidden_files_and_areas": [
+    "backend/llm/schemas.py",
+    "DeepSeek provider and TemplateProvider",
+    "router, retriever, and AgentState",
+    "Connectors, MCP, tool implementation, and cache policy",
+    "database schema, migrations, formal database, .env, and secrets",
+    "auth/RBAC, course authorization, and teacher course scope",
+    "innovation service/recommender, aliases, relevance thresholds, and provenance trust gates",
+    "global tool budgets and business timeouts",
+    "general Citation Guard support, relevance, or token thresholds",
+    "any seventh product or seventh test file without renewed scope review"
+  ],
+  "external_grounding_contract": {
+    "supported_required_sources": ["paper", "vulnerability", "standard", "project"],
+    "practice_uses_separate_contract": true,
+    "pure_course_path_unchanged": true,
+    "evidence_scope": {
+      "explicit_required_types_only": true,
+      "trusted_only": true,
+      "single_type_may_keep_multiple_candidates": true,
+      "include_course_only_if_explicitly_required": true
+    },
+    "field_mapping": {
+      "paper": ["structured authors with bounded sanitization"],
+      "standard_raw_metadata_allowlist": [
+        "version",
+        "official_metadata_only",
+        "local_uploaded",
+        "local_verification_status"
+      ],
+      "nvd_mapping_change": false,
+      "missing_field_behavior": "omit or explicitly state source did not provide it"
+    },
+    "doi": {
+      "trusted_paper_only": true,
+      "current_run_only": true,
+      "exact_external_id_span_only": true,
+      "anchored_bounded_syntax": true,
+      "canonical_equals_span": true,
+      "infer_from_url": false,
+      "general_guard_threshold_change": false
+    },
+    "generation": {
+      "max_candidates": 2,
+      "retry_same_evidence": true,
+      "repeat_planner": false,
+      "repeat_retrieve": false,
+      "repeat_connector": false,
+      "repeat_mcp": false,
+      "repeat_tool": false,
+      "template_success_fallback": false
+    },
+    "attempt_1_validation_error": {
+      "schema_change_allowed": false,
+      "accept_attempt_0": false,
+      "third_candidate_allowed": false,
+      "fail_closed": true,
+      "persist_max_items": 8,
+      "persist_fields": ["loc", "type", "root_error_type"],
+      "forbidden_fields": ["msg", "input", "ctx", "candidate_text", "exception_text"]
+    }
+  },
+  "guard_invariants": [
+    "server validates source, span ownership, renderer order, exact quote, support, relevance, duplicate claims, and required-source coverage",
+    "server never silently rewrites claim_text, changes span, deletes a failed source, or synthesizes facts",
+    "standard metadata cannot support standard body text, clauses, or a verified-full-text claim",
+    "DOI compatibility does not relax arXiv, CVE, repository, token, support, or relevance rules"
+  ],
+  "citation_contract": {
+    "schema_field": "source_id: str | None = None for legacy compatibility",
+    "new_server_responses_must_populate": true,
+    "non_contiguous_source_ids_are_valid": true,
+    "frontend_uses_server_source_id_when_present": true,
+    "positional_fallback_only_for_legacy_missing_field": true,
+    "same_evidence_item_fields": [
+      "source_id",
+      "document_id",
+      "chunk_id",
+      "source_url",
+      "resource_type"
+    ]
+  },
+  "teacher_contract": {
+    "change": "if __name__ == '__main__': render()",
+    "anonymous_business_api_calls": 0,
+    "backend_rbac_change": false,
+    "main_app_double_render_forbidden": true
+  },
+  "innovation_contract": {
+    "decision": "NO_CHANGE_CONFIRMED",
+    "code_change": false,
+    "fixed_topic": "5G NAS authentication",
+    "fixed_current_plan": "比较正常认证与重放检测的事件序列、检测命中和误报，仅使用课程隔离日志。",
+    "fixed_followup": "以检测命中率、误报率和事件序列差异为指标，使用同一批隔离日志建立正常组、重放组和消融对照组；不接触公网目标，也不使用真实用户数据。",
+    "requires_relevant_trusted_case_precondition": true,
+    "unrelated_github_allowed": false,
+    "empty_without_trusted_case_classification": "CONTENT_GAP_OR_THIRD_PARTY_LIMITATION"
+  },
+  "required_red_green_tests": [
+    "single paper/NVD/standard/project requests use GroundedSpanAnswer",
+    "single external evidence catalog excludes unrequested course and external types",
+    "paper structured authors and standard state fields become bounded spans while NVD mapping is unchanged",
+    "trusted exact DOI passes; forged, wrong-type, wrong-source/span, URL-derived, and overreaching DOI claims fail",
+    "multi attempt-1 ValidationError abstains, does not accept attempt 0, and records only bounded loc/type",
+    "retry feedback reaches actual client messages and changes their hash without repeated upstream calls",
+    "two invalid candidates and provider/parse failures never become Template success",
+    "S2 remains S2 through API serialization and frontend rendering",
+    "anonymous teacher page renders a login gate without business API calls",
+    "student cannot see management data and main-app teacher navigation renders once"
+  ],
+  "compatibility_regression": [
+    "Practice suite and course+paper",
+    "course-only, Flow 03, and Flow 08",
+    "GitHub single-source and multi-source required coverage",
+    "evidence-insufficient and prompt-injection negatives",
+    "course authorization and auth/RBAC",
+    "resource portal and innovation",
+    "phase3 e2e and existing Citation Guard tests"
+  ],
+  "command_9D_gate": {
+    "order": [
+      "root-cause red/green nodes",
+      "external grounding and retry/observability directed tests",
+      "citation API/UI and teacher frontend tests",
+      "shared Agent/Prompt/Guard/API/frontend compatibility",
+      "one final full pytest with a fresh isolated basetemp"
+    ],
+    "required_failed": 0,
+    "required_errors": 0,
+    "skip_counts_as_pass": false,
+    "on_scope_expansion": "SCOPE_REVIEW_REQUIRED",
+    "success_status": "IMPLEMENTATION_READY_FOR_TARGETED_ACCEPTANCE",
+    "success_next_gate": "command_9E_allowed=true"
+  },
+  "command_9E": {
+    "fixed_inputs_source": "md/扩展人工验收最小修复计划.md section 9",
+    "fresh_isolated_runtime": true,
+    "real_codex_iab": true,
+    "rerun_unaffected_passes": false,
+    "affected_flows": [
+      "paper",
+      "nvd",
+      "github_regression",
+      "standard",
+      "multi_source",
+      "upload_citation_display",
+      "innovation_corrected_input",
+      "anonymous_teacher_deep_link"
+    ],
+    "pre_run_environment_recovery_allowed": true,
+    "post_run_replacement": {
+      "max_exact_replacements": 1,
+      "requires_candidate_count_zero": true,
+      "requires_guard_not_reached": true,
+      "requires_no_product_semantic_result": true,
+      "allowed_causes": ["transport", "permission", "third_party_429", "third_party_5xx"]
+    },
+    "semantic_failure_retry_allowed": false,
+    "second_candidate_parse_failure_is_pass": false,
+    "evidence_format": "simple readable raw page/run/trace/tool/candidate/Guard summaries and result.json",
+    "zip_or_fingerprint_required": false
+  },
+  "rollback": {
+    "external_grounding": "Revert orchestrator, prompt, and Guard edits together.",
+    "citation": "Revert orchestrator, response schema, and student rendering together.",
+    "teacher": "Revert the direct-entry guard and its test independently.",
+    "database_rollback_required": false,
+    "post_rollback_validation": "Run affected directed tests and one full pytest."
+  }
+}

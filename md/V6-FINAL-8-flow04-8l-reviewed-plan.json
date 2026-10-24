@@ -1,0 +1,244 @@
+{
+  "command": "8O",
+  "title": "V6-FINAL-8 Flow 04 8L修复计划反向技术与安全评审",
+  "verdict": "APPROVED_FOR_IMPLEMENTATION",
+  "command_8P_allowed": true,
+  "supersedes_conflicting_8N_clauses": true,
+  "evidence_basis": [
+    "diagnostics/v6final8-command8m-20261010T134951Z-d324f6db/diagnostic_report.json",
+    "diagnostics/v6final8-command8m-20261010T134951Z-d324f6db/attempt_claim_span_matrix.json",
+    "md/V6-FINAL-8-flow04-8l-repair-plan.json",
+    "md/V6-FINAL-8-flow04-reviewed-plan.json",
+    "diagnostics/v6final8-command8i-implementation_report.json",
+    "diagnostics/v6final8-command8l-20261010T131815Z-23084f96/persistent_evidence/flow_04/positive/run_evidence.json"
+  ],
+  "review_decisions": [
+    {"item":"root_cause","decision":"APPROVE","reason":"8M以实际消息、claim/span哈希和最终错误码证明基础contract未把严格支持谓词转换为确定的抽取规则；不是把模型随机性当作唯一根因。"},
+    {"item":"verbatim_contract","decision":"REVISE_THEN_APPROVE","reason":"完整exact_text应为规范默认；连续片段必须是模型可见exact_text中的同语言、连续、逐字符复制片段。不得使用自由缩写、重排或仅语义等价文本。"},
+    {"item":"unsupported_vs_irrelevant","decision":"APPROVE","reason":"UNSUPPORTED由Guard在source/span存在、同源、quote一致且相关性已通过后产生，保留绑定并纠正claim安全；IRRELEVANT和未知/错配绑定必须重选。"},
+    {"item":"same_span_retry_security","decision":"APPROVE","reason":"保留span不绕过Guard；第二候选仍执行完整Practice/Citation Guard。复制span只能删除资料外词，不能令资料外事实借壳通过。"},
+    {"item":"single_tuple_full_reaudit","decision":"REVISE_THEN_APPROVE","reason":"首tuple不是完整错误枚举，不能宣称定位所有错误；它只说明失败模式。批准条件是attempt 1重建完整JSON，并对七字段、全部六步和required sources逐项应用统一抽取规则。若模型仍不服从，Guard必须拒答。"},
+    {"item":"server_controlled_claim_generation","decision":"REJECT","reason":"服务器用span生成或覆盖claim会改变事实作者、字段语义和审计边界；当前span没有服务器字段语义标签，静默复制可能把正确证据放入错误字段。本轮禁止。"},
+    {"item":"final_failure_observability","decision":"REVISE_THEN_APPROVE","reason":"每个attempt的完整脱敏拒绝对象以model_call metadata为规范载体；trace只保存attempt、error_code和安全locator摘要，避免双份完整诊断漂移。"},
+    {"item":"actual_client_messages_test","decision":"APPROVE","reason":"必须继续使用fake DeepSeek client检查真正传给chat.completions.create的messages和哈希，builder或metadata断言不足。"},
+    {"item":"guard_schema_provider_scope","decision":"APPROVE","reason":"8M没有证明Guard、Schema或provider缺陷；三个文件足够，扩大范围无确定证据。"},
+    {"item":"8Q_scope","decision":"APPROVE","reason":"只重验Flow 04正向；其余锁定PASS、权限矩阵、8P代码回归和既有负对照直接复用。"}
+  ],
+  "frozen_allowed_files": {
+    "product": [
+      "backend/llm/prompts.py",
+      "backend/agent/orchestrator.py"
+    ],
+    "tests": [
+      "tests/test_practice_grounding_contract.py"
+    ]
+  },
+  "allowed_changes_by_file": {
+    "backend/llm/prompts.py": [
+      "仅修改GroundedPracticeGuide专用contract和安全retry文本构造。",
+      "规定claim_text优先等于完整exact_text；受限备选只能是模型可见exact_text中的同语言连续逐字符片段。",
+      "禁止翻译、同义改写、总结、补词、重排、跨span拼接和资料外proposal。",
+      "按错误码分流：UNSUPPORTED保留已验证source/span并纠正claim；IRRELEVANT、unknown source/span和source mismatch要求从目录重选。",
+      "attempt 1必须完整重建并审计七字段、全部步骤、required source coverage、重复claim和每项抽取性。",
+      "证据正文继续只位于不可信user data；system retry不得包含原始claim、完整chunk或调用者自由文本。"
+    ],
+    "backend/agent/orchestrator.py": [
+      "保持最多两个候选和同一request-scoped evidence，不重复Planner、retrieve、证据水合、MCP、Connector或工具。",
+      "为每个被拒候选构造固定allowlist的candidate_rejection记录并写入对应model_call metadata。",
+      "Guard拒绝记录attempt、error_code、practice_field、ordinal、source_id、span_id、claim_length、claim_sha256、normalized_claim_sha256、布尔normalization_flags。",
+      "Practice预校验拒绝使用同一记录结构；能安全定位首claim时填充，不能定位时使用空locator、ordinal=0、failure_detail_available=false。",
+      "每个attempt可写一条trace摘要，但trace不得复制claim哈希以外的正文或完整failure对象；model_call metadata是规范证据。",
+      "移除只记录首轮Guard失败的guard_failure_traced抑制语义；最终attempt失败tuple必须可恢复。",
+      "服务器不得生成、替换、截断或修复claim_text，不得更换模型选择的source/span。"
+    ],
+    "tests/test_practice_grounding_contract.py": [
+      "新增先红后绿根因、错误分流、多错误全审计、最终failure tuple、真实客户端messages和隐私测试。",
+      "保留并加强既有course-only、混合外部证据、S2干扰、两候选失败、prompt injection和无上游重放断言。",
+      "不得删除核心断言、skip、xfail或把预期改为ABSTAIN来隐藏正例失败。"
+    ]
+  },
+  "extractive_contract": {
+    "normative_default": "claim_text == selected EvidenceSpan.exact_text as shown to the model",
+    "limited_alternative": "claim_text is an exact, same-language, contiguous character substring of selected exact_text",
+    "server_rewrite": false,
+    "guard_still_required": true,
+    "one_span_per_claim": true,
+    "cross_span_merge": false,
+    "free_paraphrase": false
+  },
+  "retry_policy": {
+    "UNSUPPORTED_CITATION": {
+      "precondition": "failure came from Practice Guard after source/span existence, ownership, quote binding and relevance checks",
+      "action": "retain the verified source/span and replace claim_text with the normative extract",
+      "fallback": "if the field cannot be truthfully satisfied by that span, select another legal relevant span; never preserve unsupported prose"
+    },
+    "IRRELEVANT_CITATION": {"action":"select another legal span relevant to the question and practice field"},
+    "GROUNDING_UNKNOWN_SOURCE": {"action":"discard the unknown source and choose from the server catalog"},
+    "GROUNDING_UNKNOWN_SPAN": {"action":"discard the unknown span and choose from the server catalog"},
+    "GROUNDING_SPAN_SOURCE_MISMATCH": {"action":"discard the mismatched pair and choose a same-source catalog pair"},
+    "other": {"action":"rebuild the complete object under the base contract; do not infer identifiers"},
+    "feedback_scope": "one bounded first-failure tuple plus a mandatory whole-candidate audit directive",
+    "candidate_limit": 2,
+    "upstream_replay": false
+  },
+  "observability_contract": {
+    "canonical_location": "model_call.metadata.candidate_rejection",
+    "one_record_per_rejected_candidate": true,
+    "trace_policy": "one compact summary per rejected attempt; no full duplicated diagnostic object",
+    "allowed_fields": [
+      "grounding_retry_attempt",
+      "error_code",
+      "practice_field",
+      "ordinal",
+      "source_id",
+      "span_id",
+      "claim_length",
+      "claim_sha256",
+      "normalized_claim_sha256",
+      "normalization_flags",
+      "failure_detail_available"
+    ],
+    "forbidden_content": [
+      "claim_text",
+      "raw candidate JSON",
+      "rendered candidate answer",
+      "full chunk",
+      "system prompt",
+      "API key",
+      "Authorization header",
+      "exception message containing untrusted text"
+    ]
+  },
+  "forbidden_changes": [
+    "修改backend/guards/citation_guard.py或任何Guard阈值/支持谓词/相关性逻辑",
+    "修改backend/llm/schemas.py、backend/llm/deepseek_provider.py或公共API",
+    "服务器生成、替换、补全、截断或规范化claim_text",
+    "服务器静默把S2改为S1或更换任何source/span",
+    "删除S2、改变检索排序、硬编码marker/source/document/chunk/中文答案",
+    "增加第三个候选或重复Planner/retrieve/MCP/Connector/tool",
+    "记录原始候选、完整chunk、完整prompt、密钥或敏感URL",
+    "Template fallback将DeepSeek失败伪装为成功",
+    "修改数据库、配置、.env、超时、权限、课程隔离或验收资料",
+    "修改第四个测试文件"
+  ],
+  "red_tests_before_implementation": [
+    "test_grounded_practice_prompt_requires_exact_or_contiguous_extract",
+    "test_practice_unsupported_retry_keeps_verified_span_and_extracts_claim",
+    "test_practice_retry_reaudits_complete_candidate_after_multiple_unsupported_claims",
+    "test_practice_final_attempt_failure_tuple_is_persisted",
+    "test_practice_rejection_diagnostics_exclude_candidate_and_chunk_text"
+  ],
+  "directed_tests_after_implementation": [
+    "上述红测全部转绿",
+    "test_practice_irrelevant_retry_reselects_span",
+    "fake DeepSeek client捕获的attempt 0/1真实messages哈希不同",
+    "attempt 1真实system message包含分类纠错与全量七字段/六步审计",
+    "正确span加自由改写仍被Guard拒绝",
+    "两次候选不合规仍ABSTAIN且无Template接管",
+    "重试期间Planner/retrieve/MCP/Connector/tool调用不增加",
+    "每个拒绝attempt恰有一个规范candidate_rejection记录且最终tuple可恢复",
+    "递归隐私断言确认state/log/trace/observation/API无原始候选和完整chunk"
+  ],
+  "practice_regression": {
+    "command_scope": "tests/test_practice_grounding_contract.py",
+    "required": "all pass with 0 skipped and 0 xfail",
+    "coverage": [
+      "course-only",
+      "course+paper/standard/vulnerability/project",
+      "forged/unknown source and wrong/mismatched span",
+      "S2 distractor",
+      "duplicate",
+      "insufficient evidence",
+      "prompt injection",
+      "cross-course and non-INDEXED",
+      "untrusted external provenance",
+      "two invalid candidates",
+      "no Template takeover"
+    ]
+  },
+  "compatibility_regression": [
+    "tests/test_agent_orchestration.py::test_practice_task_prioritizes_course_and_paper_evidence",
+    "tests/test_phase3_e2e.py::test_phase3_full_demo_flow_offline",
+    "tests/test_llm_provider.py::test_deepseek_provider_parses_grounded_practice_output",
+    "tests/test_r3_grounded_answer_contract.py::test_grounded_span_prompt_includes_span_contract_and_catalog",
+    "tests/test_r3_grounded_answer_contract.py::test_grounded_span_prompt_does_not_inherit_freeform_citation_instructions",
+    "tests/test_api_endpoints.py::test_practice_guide_endpoint_records_question",
+    "tests/test_api_endpoints.py::test_chat_endpoint_records_question",
+    "tests/test_api_endpoints.py::test_indexed_upload_exact_question_keeps_correct_document_and_chunk_binding"
+  ],
+  "shared_regression": {
+    "scope": [
+      "tests/test_r3_grounded_answer_contract.py",
+      "tests/test_llm_provider.py",
+      "tests/test_agent_orchestration.py",
+      "tests/test_j3_agent_evidence.py",
+      "tests/test_phase3_e2e.py",
+      "tests/test_api_endpoints.py"
+    ],
+    "policy": "run only; files outside the whitelist must not be modified"
+  },
+  "full_pytest_gate": {
+    "fresh_isolated_basetemp": true,
+    "failed": 0,
+    "errors": 0,
+    "skips_xfails_warnings": "reported separately; skips and xfails are not passes; no unexplained new skip",
+    "final_stable_revision_only": true
+  },
+  "command_8P_gate": [
+    "all red tests demonstrated before change and green after change",
+    "directed, Practice, compatibility, shared and final full pytest gates pass",
+    "Guard/Schema/provider/API and all non-whitelisted files unchanged",
+    "formal database hash, size, mtime and business counts unchanged",
+    "no services, real model or browser used by 8P",
+    "output IMPLEMENTATION_READY_FOR_FLOW04_ACCEPTANCE and command_8Q_allowed=true"
+  ],
+  "command_8Q_gate": {
+    "scope": "Flow 04 positive only",
+    "reuse": [
+      "H5 and F01-F15",
+      "the other 11 browser flows",
+      "permission matrix",
+      "8P final code regressions",
+      "8J evidence-insufficient negative control"
+    ],
+    "fixture": "fresh isolated course A with both complete S1 target and S2 distractor INDEXED and present in retrieval/model evidence",
+    "fixed_question": "请仅根据课程A中包含 F8-DIAG-PRACTICE-A 的资料生成六步实践指导；每个事实均须能在资料中找到依据，不足之处请明确拒答，不要补充资料外事实。",
+    "positive_browser_submissions": 1,
+    "positive_agent_runs": 1,
+    "pass": [
+      "COMPLETED / ANSWERED",
+      "DeepSeek provider and fallback_used=false",
+      "seven complete fields and exactly six steps",
+      "each claim has a verified source/span and passes unchanged Guards",
+      "S2 is not used beyond its single-sentence scope",
+      "if retry occurs, classified feedback and whole-candidate audit are in the actual second message and hashes differ",
+      "no upstream replay",
+      "formal database unchanged and isolated resources cleaned"
+    ],
+    "if_attempt_0_passes": "do not force a retry; reuse deterministic 8P fake-client retry evidence",
+    "if_semantic_failure_after_any_candidate": "save the single run and final failure tuple; no replacement run, output PRODUCT_SEMANTIC_FAILURE",
+    "if_transport_fails_before_any_candidate_or_guard": "classify as environment limitation under the explicit 8Q command; never treat as semantic pass and never improvise a retry policy",
+    "final_reporting": "replace only Flow 04 current status in F16/F17 on PASS; preserve 8L failure in history and retain Flow 08 P2 risk"
+  },
+  "security_invariants": [
+    "Citation Guard and Practice Guard remain fail-closed with byte-identical code and unchanged thresholds",
+    "GroundedPracticeGuide schema, DeepSeek provider, public API and database schema remain unchanged",
+    "model remains the author of claim_text and selector of source/span",
+    "course authorization, INDEXED checks, cross-course isolation and trusted external provenance remain unchanged",
+    "full chunks and raw candidates never enter persistent state, logs, traces, API output or diagnostics",
+    "evidence prompt injection cannot override system contract or server retry correction",
+    "Template fallback cannot turn a DeepSeek Practice failure into success"
+  ],
+  "rollback": {
+    "scope": "only the 8P delta in the three whitelisted files",
+    "baseline_hashes": {
+      "backend/llm/prompts.py": "010b1ed0285bf32c5ecf8c228ff1024fcc0df0fb39d8882e7e8e114dea625e6b",
+      "backend/agent/orchestrator.py": "0711bf2cd7dc1389e3d3fa189a7c77585d3c9ee1086db8132c349148cfb79063",
+      "tests/test_practice_grounding_contract.py": "c468198e62c0b219a8e546517a63864257df835e996e2d4f75ea8a803aab64e3"
+    },
+    "must_preserve": "8D-S2 mixed evidence contract and 8I system prompt/retry-message plumbing",
+    "migration_required": false
+  },
+  "next_command": "8P",
+  "auto_execute_next": false
+}

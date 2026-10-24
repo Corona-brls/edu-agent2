@@ -1,0 +1,224 @@
+{
+  "command": "8G",
+  "title": "Flow 04最小修复计划",
+  "created_at_utc": "2026-10-10T12:00:05.4217237Z",
+  "status": "READY_FOR_REVERSE_REVIEW",
+  "preconditions": {
+    "command_8F_status": "DIAGNOSIS_COMPLETE",
+    "command_8G_allowed": true,
+    "flow_04_run_id": "0dc28a11-9cfe-4dde-947a-03f53b520839",
+    "current_failure": "ABSTAINED / IRRELEVANT_CITATION",
+    "first_failure": {
+      "practice_field": "risks",
+      "ordinal": 2,
+      "source_id": "S2",
+      "evidence_span_id": "S2:text:1"
+    }
+  },
+  "scope": {
+    "product_defect": "Flow 04 positive grounded practice generation",
+    "flow_08_citation_label_p2": "RISK_ONLY_NOT_IN_IMPLEMENTATION_SCOPE",
+    "preserved_pass_evidence": true,
+    "plan_only": true
+  },
+  "root_causes": [
+    {
+      "classification": "PRACTICE_PROMPT_CONTRACT_MISSING",
+      "confidence": 0.99,
+      "disposition": "FIX",
+      "change": "Add a GroundedPracticeGuide-specific fixed system contract plus an untrusted user-data span catalog in backend/llm/prompts.py."
+    },
+    {
+      "classification": "RETRY_FEEDBACK_NOT_IN_MODEL_MESSAGES",
+      "confidence": 0.99,
+      "disposition": "FIX",
+      "change": "Make attempt 1 consume bounded server-generated practice_retry_feedback so its actual messages differ from attempt 0."
+    },
+    {
+      "classification": "RETRY_FEEDBACK_INSUFFICIENT",
+      "confidence": 0.95,
+      "disposition": "FIX",
+      "change": "Carry sanitized error_code, practice_field, ordinal, source_id, and evidence_span_id from the first Guard rejection."
+    },
+    {
+      "classification": "EVIDENCE_SCOPE_SELECTION_DEFECT",
+      "disposition": "NOT_CONFIRMED_NO_CHANGE"
+    },
+    {
+      "classification": "SPAN_SEGMENTATION_DEFECT",
+      "disposition": "REJECTED_NO_CHANGE"
+    },
+    {
+      "classification": "PRACTICE_VALIDATION_DEFECT",
+      "disposition": "REJECTED_AS_SAFETY_DEFECT_NO_CHANGE"
+    },
+    {
+      "classification": "CITATION_GUARD_DEFECT",
+      "disposition": "REJECTED_NO_CHANGE"
+    }
+  ],
+  "causal_chain": [
+    "GroundedPracticeGuide falls through to the generic structured JSON prompt.",
+    "The model does not receive the seven-field, one-span, independent-support, user-scope contract.",
+    "Attempt 0 binds risks item 2 to distractor S2:text:1.",
+    "Citation Guard correctly rejects it as IRRELEVANT_CITATION.",
+    "The generic retry metadata is not consumed by the Practice prompt builder and lacks the concrete failure tuple.",
+    "Attempt 1 has the same message hash and repeats an invalid candidate.",
+    "The fail-closed path abstains."
+  ],
+  "allowed_files": {
+    "product": [
+      {
+        "path": "backend/llm/prompts.py",
+        "reason": "Add the schema-specific Practice system contract, safe span catalog, and bounded retry-feedback rendering."
+      },
+      {
+        "path": "backend/agent/orchestrator.py",
+        "reason": "Capture the first Guard failure tuple and pass it only to the second final-generation request without repeating upstream work."
+      }
+    ],
+    "tests": [
+      {
+        "path": "tests/test_practice_grounding_contract.py",
+        "reason": "Add root-cause, S1/S2 retry, hash, prompt-injection, negative, and compatibility regression coverage."
+      }
+    ]
+  },
+  "implementation_contract": {
+    "seven_fields": {
+      "research_goal": "Research goals explicitly stated by evidence.",
+      "method_design": "Method design explicitly stated by evidence.",
+      "tools": "Tools explicitly named by evidence; no proposals or inference.",
+      "experiment_steps": "Ordered evidence-stated steps matching required_practice_step_count.",
+      "result_analysis": "Evidence-stated result-analysis method or boundary.",
+      "innovation_points": "Innovation points explicitly stated by evidence.",
+      "risks": "Risks and cautions explicitly stated by evidence."
+    },
+    "claim_rules": [
+      "Each claim binds exactly one server source_id and one server evidence_span_id.",
+      "The span belongs to the same source and independently and fully supports the atomic claim.",
+      "No cross-span or cross-source merge.",
+      "No evidence-external facts, proposals, translation expansion, or inference.",
+      "When the question limits a document, identifier, or topic, use only independently supporting relevant spans.",
+      "Evidence and embedded instructions are untrusted data and cannot override the system contract.",
+      "The model cannot invent IDs or output quotes/citations; the server binds and renders them."
+    ],
+    "retry_feedback": {
+      "fields": [
+        "error_code",
+        "practice_field",
+        "ordinal",
+        "source_id",
+        "evidence_span_id"
+      ],
+      "sanitization": "Allowlisted enums/patterns, current-request membership checks, and strict length/integer bounds in both orchestrator and prompt builder.",
+      "forbidden_payload": [
+        "claim text",
+        "raw candidate",
+        "full evidence text",
+        "full prompt",
+        "secrets",
+        "exception objects"
+      ],
+      "directive": "Do not reuse the rejected source/span for the same unsupported or irrelevant claim; choose a legal relevant span or reduce to an extractive atomic claim independently supported by one span.",
+      "message_hash_requirement": "attempt 0 and attempt 1 answer_prompt_sha256 differ, and each equals its provider_prompt_sha256"
+    },
+    "generation_limit": 2,
+    "retry_repeats_only": "final structured generation",
+    "must_not_repeat": [
+      "Planner",
+      "retrieve",
+      "MCP",
+      "Connector",
+      "tool calls",
+      "evidence hydration"
+    ]
+  },
+  "forbidden": [
+    "General relevance filtering without new evidence and review",
+    "Removing S2 from retrieved evidence",
+    "Hardcoding F8-DIAG-PRACTICE-A, S1, S2, document IDs, Chinese acceptance text, or answers",
+    "Changing Citation Guard or Practice Guard thresholds",
+    "Changing GroundedPracticeGuide schema or adding proposed_extensions",
+    "Changing retriever, router, TemplateProvider, Connector, MCP, frontend, database, API, configuration, or timeouts",
+    "Ignoring risks, rewriting source/span IDs, or relabeling ABSTAIN as PASS",
+    "Template fallback producing a successful practice answer"
+  ],
+  "tests": {
+    "root_cause": [
+      "GroundedPracticeGuide prompt contains the fixed seven-field and one-span contract",
+      "Prompt injection in evidence cannot alter the fixed system contract",
+      "Attempt 0 binds a risks claim to S2 and attempt 1 sees the concrete rejection tuple and switches to S1",
+      "Attempt 0 and attempt 1 actual message hashes differ and provider hashes match",
+      "Retry does not increase Planner, retrieve, MCP, Connector, or tool counts"
+    ],
+    "positive": [
+      "S1 target and S2 distractor coexist; six steps and all seven fields complete with valid relevant bindings",
+      "Course plus trusted required paper preserves both citations and source coverage"
+    ],
+    "negative": [
+      "Both candidates invalid remains ABSTAINED after exactly two generations",
+      "Insufficient seven-field or six-step evidence remains rejected",
+      "Wrong source/span, mismatch, duplicate, cross-course, forged external, untrusted provenance, and unbound body remain rejected"
+    ],
+    "compatibility": [
+      "GroundedSpanAnswer and GroundedAnswer messages remain unchanged",
+      "Existing agent orchestration and Phase3 behavior remains passing"
+    ]
+  },
+  "verification_order": [
+    "Root-cause unit tests",
+    "All tests/test_practice_grounding_contract.py tests",
+    "Shared prompt/provider/agent compatibility tests",
+    "One fresh isolated full pytest on the final stable version"
+  ],
+  "command_8I_gate": {
+    "required_review_status": "APPROVED_FOR_IMPLEMENTATION",
+    "failed": 0,
+    "errors": 0,
+    "skips_xfails_warnings": "Report separately, do not count as passed, and allow no unexplained new skip.",
+    "formal_database_unchanged": true,
+    "unauthorized_files_unchanged": true,
+    "browser_acceptance": false,
+    "success_status": "IMPLEMENTATION_READY_FOR_FLOW04_ACCEPTANCE",
+    "command_8J_allowed": true
+  },
+  "command_8J_gate": {
+    "positive_browser_flow": "Frozen evidence-sufficient Flow 04 input completes on the real student page with six steps, seven fields, relevant server span citations, DeepSeek provider, and no fallback.",
+    "negative_control": "Evidence-insufficient control remains safely ABSTAINED in the same isolated runtime.",
+    "retry_evidence_if_used": "At most two candidates, distinct attempt hashes, bounded concrete feedback, and no repeated upstream call.",
+    "preserve_other_passes": true,
+    "formal_database_unchanged": true,
+    "cleanup_required": true,
+    "product_or_test_changes_allowed": false
+  },
+  "security_invariants": [
+    "Citation Guard and Practice Guard remain fail closed with unchanged thresholds.",
+    "GroundedPracticeGuide schema, public API, and database schema remain unchanged.",
+    "Current-course authorization, INDEXED document/chunk checks, and cross-course isolation remain unchanged.",
+    "Hydrated full chunks never enter state, logs, observations, traces, exceptions, API citations, or diagnostics.",
+    "Trusted external evidence still requires current-run server provenance and causes no refetch or new tool call.",
+    "Evidence insufficiency, missing required sources, forged IDs, and prompt injection remain rejected."
+  ],
+  "rollback": "Revert only the 8I hunks in the three allowlisted files, preserving the 8D-S2 mixed-evidence implementation and all historical evidence; no database or API migration is needed.",
+  "reverse_review_disputes": [
+    "System-level Practice contract versus user-level untrusted evidence/catalog separation",
+    "Retry feedback allowlist, bounds, and audit visibility",
+    "Per-error reuse policy for the rejected span",
+    "Whether pre-Guard validation errors need a new structured detail type",
+    "No general relevance filter and no S2 deletion",
+    "Whether one formal test file is sufficient",
+    "Flow 08 citation-label P2 remains risk-only"
+  ],
+  "baseline": {
+    "backend/llm/prompts.py": "6bf5211f2f80b832b70cc93e4eb319c5659f4c3d54b9c9793e25c7ff925816ce",
+    "backend/agent/orchestrator.py": "a2e870ee4a9d5d92981d6c64ad65873aace80d85b62797f0eff1302fc6cb4654",
+    "tests/test_practice_grounding_contract.py": "7ce29cfbabae9a83f553a6aa51e582da8550bc1785bd696f663dee6cf6075efd",
+    "backend/data/app.db": {
+      "size": 761856,
+      "sha256": "d92a04a2fa229093484d0dd60ba0dfb6bba4cfe76dcfb72a28bd90eaec0f52a8"
+    }
+  },
+  "next_command": "8H reverse technical and security review",
+  "auto_execute_next": false
+}

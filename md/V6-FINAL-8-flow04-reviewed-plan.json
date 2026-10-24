@@ -1,0 +1,236 @@
+{
+  "command": "8H",
+  "title": "Flow 04修复计划反向技术评审",
+  "created_at_utc": "2026-10-10T12:12:27.1032005Z",
+  "verdict": "APPROVED_FOR_IMPLEMENTATION",
+  "command_8I_allowed": true,
+  "supersedes_conflicting_8G_clauses": true,
+  "scope": {
+    "defect": "Flow 04 positive grounded practice generation retry contract",
+    "flow_08_citation_card_ordinal_p2": "NON_BLOCKING_RISK_NOT_SAME_SOURCE_PATH",
+    "implementation_executed": false
+  },
+  "review_decisions": [
+    {
+      "item": "root_cause_chain",
+      "decision": "REVISE",
+      "reason": "The first S2 choice may be model variance. The deterministic defects are the missing Practice contract and the byte-identical no-op retry messages."
+    },
+    {
+      "item": "practice_specific_contract",
+      "decision": "APPROVE",
+      "reason": "A schema-exact system-level contract is the minimum change matching the existing server validator."
+    },
+    {
+      "item": "retry_feedback",
+      "decision": "REVISE",
+      "reason": "Use a bounded server-generated practice_retry_feedback object, not free-form metadata guidance."
+    },
+    {
+      "item": "deepseek_actual_message_proof",
+      "decision": "REVISE",
+      "reason": "Capture messages passed to a fake DeepSeek client; builder-only assertions are insufficient."
+    },
+    {
+      "item": "two_candidate_budget_and_no_upstream_replay",
+      "decision": "APPROVE",
+      "reason": "Keep the current two-candidate loop and reuse the same request-local evidence and spans."
+    },
+    {
+      "item": "general_relevance_filter",
+      "decision": "REJECT",
+      "reason": "8F did not confirm an evidence-scope or retriever defect."
+    },
+    {
+      "item": "server_rewrites_model_span",
+      "decision": "REJECT",
+      "reason": "The model must emit the corrected source/span; the server may validate or reject but never silently rewrite."
+    },
+    {
+      "item": "file_allowlist",
+      "decision": "APPROVE",
+      "reason": "Two product files and one test file are sufficient."
+    },
+    {
+      "item": "regression_matrix",
+      "decision": "REVISE",
+      "reason": "Add actual DeepSeek payload, all four external types, and exact Flow 03/08 compatibility nodes."
+    },
+    {
+      "item": "command_8J_single_positive_run",
+      "decision": "REVISE",
+      "reason": "S1 and S2 must coexist in the same run and a failed created run cannot be replaced by a later successful run."
+    },
+    {
+      "item": "flow_08_scope_expansion",
+      "decision": "REJECT",
+      "reason": "Flow 08 uses GroundedSpanAnswer/upload citation paths; no direct same-source evidence exists."
+    }
+  ],
+  "confirmed_root_cause": {
+    "deterministic": [
+      "build_structured_messages has no GroundedPracticeGuide-specific contract branch",
+      "Practice retry metadata is not consumed by the prompt builder",
+      "Attempt 0 and attempt 1 actual message SHA-256 values are identical",
+      "The first Guard failure tuple is not propagated to attempt 1"
+    ],
+    "not_deterministic_root_cause": "The model's first selection of distractor S2",
+    "trigger_condition": "Target S1 and semantically related distractor S2 are both visible",
+    "guard_assessment": "CORRECT_FAIL_CLOSED"
+  },
+  "allowed_files": {
+    "product": [
+      "backend/llm/prompts.py",
+      "backend/agent/orchestrator.py"
+    ],
+    "tests": [
+      "tests/test_practice_grounding_contract.py"
+    ]
+  },
+  "forbidden_files_and_surfaces": [
+    "backend/llm/deepseek_provider.py",
+    "backend/guards/citation_guard.py",
+    "backend/llm/schemas.py",
+    "backend/llm/template_provider.py",
+    "retriever",
+    "router",
+    "Connector",
+    "MCP",
+    "frontend",
+    "public API",
+    "database",
+    "configuration",
+    ".env",
+    "timeouts",
+    "knowledge fixtures outside the allowed test file",
+    "a fourth test file"
+  ],
+  "approved_implementation": {
+    "backend/llm/prompts.py": [
+      "Add an exact GroundedPracticeGuide branch.",
+      "Place the fixed seven-field, one-server-span, independent-support, no-cross-span, no-proposal, and untrusted-evidence rules in messages[0].content.",
+      "Keep question, evidence text, and span text in an explicitly untrusted user-data section.",
+      "Render only validated server practice_retry_feedback in the attempt-1 system correction section.",
+      "Do not consume arbitrary free-form grounded_retry_guidance for Practice."
+    ],
+    "backend/agent/orchestrator.py": [
+      "Capture only the first Guard failure in a request-local variable.",
+      "Build practice_retry_feedback with error_code, practice_field, ordinal, source_id, and evidence_span_id.",
+      "Validate enum, regex, bounds, current-request membership, and source/span ownership before passing feedback.",
+      "Do not persist claim text, raw candidate, full evidence, full prompt, exception objects, or secrets.",
+      "Keep exactly two candidate iterations and reuse the same hydrated evidence and spans.",
+      "Never rewrite a candidate's source/span; validate, bind, render, or abstain only."
+    ]
+  },
+  "retry_feedback_contract": {
+    "fields": {
+      "error_code": "uppercase letters, digits, underscore, max 64",
+      "practice_field": "one of the seven GroundedPracticeGuide fields",
+      "ordinal": "integer 1 through 12",
+      "source_id": "existing current-request S-number",
+      "evidence_span_id": "existing current-request span owned by source_id"
+    },
+    "current_failure_example": {
+      "error_code": "IRRELEVANT_CITATION",
+      "practice_field": "risks",
+      "ordinal": 2,
+      "source_id": "S2",
+      "evidence_span_id": "S2:text:1"
+    },
+    "model_instruction": "Do not reuse the rejected source/span for the same unsupported or irrelevant claim; select a legal relevant span or reduce the claim to one extractive atomic fact fully supported by one span.",
+    "first_failure_only": true,
+    "full_internal_state_allowed": false
+  },
+  "model_server_boundary": {
+    "model_controls": [
+      "claim_text",
+      "source_id",
+      "evidence_span_id"
+    ],
+    "server_controls": [
+      "source/span catalog",
+      "authorization",
+      "validation",
+      "quote binding",
+      "rendering",
+      "fail-closed decision"
+    ],
+    "server_candidate_rewrite": "FORBIDDEN"
+  },
+  "new_or_revised_test_nodes": [
+    "tests/test_practice_grounding_contract.py::test_grounded_practice_prompt_contract_is_system_level_and_treats_evidence_as_untrusted",
+    "tests/test_practice_grounding_contract.py::test_deepseek_practice_retry_receives_first_guard_failure_and_recovers_from_distractor",
+    "tests/test_practice_grounding_contract.py::test_practice_prompt_injection_cannot_override_system_contract",
+    "tests/test_practice_grounding_contract.py::test_practice_generation_retries_once_without_retrieval_or_template_takeover",
+    "tests/test_practice_grounding_contract.py::test_practice_second_invalid_candidate_abstains_without_late_or_fallback_generation",
+    "parameterized mixed course plus paper/standard/vulnerability/project regression in tests/test_practice_grounding_contract.py"
+  ],
+  "required_existing_nodes": [
+    "tests/test_practice_grounding_contract.py",
+    "tests/test_agent_orchestration.py::test_practice_task_prioritizes_course_and_paper_evidence",
+    "tests/test_phase3_e2e.py::test_phase3_full_demo_flow_offline",
+    "tests/test_llm_provider.py::test_deepseek_provider_parses_grounded_practice_output",
+    "tests/test_r3_grounded_answer_contract.py::test_grounded_span_prompt_includes_span_contract_and_catalog",
+    "tests/test_r3_grounded_answer_contract.py::test_grounded_span_prompt_does_not_inherit_freeform_citation_instructions",
+    "tests/test_api_endpoints.py::test_practice_guide_endpoint_records_question",
+    "tests/test_api_endpoints.py::test_chat_endpoint_records_question",
+    "tests/test_api_endpoints.py::test_indexed_upload_exact_question_keeps_correct_document_and_chunk_binding"
+  ],
+  "command_8I_gate": {
+    "root_cause_tests": "PASS",
+    "practice_file": "PASS",
+    "exact_compatibility_nodes": "PASS",
+    "shared_prompt_agent_compatibility": "PASS",
+    "fresh_isolated_full_pytest": {
+      "failed": 0,
+      "errors": 0,
+      "skips_xfails_warnings": "reported separately and not counted as passed; no unexplained new skip"
+    },
+    "actual_deepseek_payload_captured_with_fake_client": true,
+    "attempt_hashes_must_differ": true,
+    "raw_candidate_not_server_rewritten": true,
+    "candidate_limit": 2,
+    "repeated_upstream_calls": 0,
+    "formal_database_unchanged": true,
+    "browser_acceptance": false,
+    "success_status": "IMPLEMENTATION_READY_FOR_FLOW04_ACCEPTANCE",
+    "command_8J_allowed": true
+  },
+  "command_8J_gate": {
+    "frozen_input": true,
+    "target_and_distractor_both_indexed_and_visible": true,
+    "positive_browser_submissions": 1,
+    "positive_agent_runs": 1,
+    "replace_failed_run_with_successful_run": false,
+    "transport_recovery": "Read isolated run/trace/database first; resubmit only if no run was created, and retain the recovery record.",
+    "positive_expected": "COMPLETED with seven fields, six ordered steps, relevant verified source/span bindings, DeepSeek provider, and fallback_used=false",
+    "negative_expected": "Evidence-insufficient control remains ABSTAINED",
+    "if_retry_occurs": "Save distinct hashes, bounded feedback, at most two candidates, and zero upstream replay",
+    "if_first_candidate_passes": "Do not force a browser failure; reference the deterministic 8I fake-client retry test",
+    "formal_database_unchanged": true,
+    "cleanup_required": true,
+    "other_passes_reused": true
+  },
+  "security_invariants": [
+    "Citation Guard and Practice Guard remain fail closed with unchanged thresholds.",
+    "GroundedPracticeGuide schema, public API, and database schema remain unchanged.",
+    "The model proposes source/span and the server never silently corrects it.",
+    "Course authorization, INDEXED checks, and cross-course isolation remain unchanged.",
+    "Trusted external evidence still requires current-run provenance and no refetch.",
+    "Full chunks, full prompts, and raw candidates never enter persistent state, logs, traces, API output, or diagnostics.",
+    "Prompt injection in evidence cannot override the system-level Practice contract or retry correction.",
+    "Template fallback cannot turn a DeepSeek Practice failure into success."
+  ],
+  "rollback": "Revert only the 8I changes in the three allowlisted files; preserve the 8D-S2 mixed-evidence implementation and historical evidence. No migration is required.",
+  "baseline": {
+    "backend/llm/prompts.py": "6bf5211f2f80b832b70cc93e4eb319c5659f4c3d54b9c9793e25c7ff925816ce",
+    "backend/agent/orchestrator.py": "a2e870ee4a9d5d92981d6c64ad65873aace80d85b62797f0eff1302fc6cb4654",
+    "tests/test_practice_grounding_contract.py": "7ce29cfbabae9a83f553a6aa51e582da8550bc1785bd696f663dee6cf6075efd",
+    "backend/data/app.db": {
+      "size": 761856,
+      "sha256": "d92a04a2fa229093484d0dd60ba0dfb6bba4cfe76dcfb72a28bd90eaec0f52a8"
+    }
+  },
+  "next_command": "8I",
+  "auto_execute_next": false
+}

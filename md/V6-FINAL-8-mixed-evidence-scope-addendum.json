@@ -1,0 +1,145 @@
+{
+  "command": "8C-S2",
+  "title": "Practice混合证据契约范围补充评审",
+  "created_at_utc": "2026-10-10T09:54:07.444Z",
+  "verdict": "APPROVED_FOR_8D_S2",
+  "current_state_until_8d_s2_passes": {
+    "scope": "SCOPE_EXTENSION_REJECTED",
+    "readiness": "IMPLEMENTATION_NOT_READY",
+    "command_8E_allowed": false
+  },
+  "facts": {
+    "original_practice_intelligent_retrieval_sources": [
+      "paper",
+      "standard",
+      "vulnerability"
+    ],
+    "router_supported_explicit_practice_sources": [
+      "paper",
+      "standard",
+      "vulnerability",
+      "project"
+    ],
+    "course_plus_paper_test_semantics": "VALID_ORIGINAL_REQUIREMENT",
+    "review_clarification": "Hydrate only course evidence does not mean allow only course evidence. Trusted external evidence uses the already-created bounded EvidenceItem summary without database hydration or new network/tool activity."
+  },
+  "preserved_8d_evidence": {
+    "targeted_passed": 137,
+    "rerun_required_as_a_separate_set": false,
+    "treated_as_final_acceptance": false
+  },
+  "approved_contract": {
+    "course_evidence": {
+      "selection": "Already present in this request's answer_evidence",
+      "authorization": "Current course, exact retrieved document_id and chunk_id, document and chunk INDEXED",
+      "hydration": "Request-local sanitized bounded spans only",
+      "forbidden_exposure": [
+        "state",
+        "logs",
+        "observations",
+        "traces",
+        "exceptions",
+        "API citations",
+        "diagnostic snapshots"
+      ]
+    },
+    "trusted_external_evidence": {
+      "allowed_types": [
+        "paper",
+        "standard",
+        "vulnerability",
+        "project"
+      ],
+      "required_checks": [
+        "Evidence was created by the current run's existing trusted tool path",
+        "tool_name is server-known and maps to the normalized resource_type",
+        "server-set trusted flag",
+        "trusted origin_kind and delivery_mode",
+        "HTTPS locator",
+        "non-empty content_hash",
+        "title or external_id",
+        "source_id is correlated with the current run's successful server-recorded tool observation evidence_ids and provenance_verified=true"
+      ],
+      "content": "Reuse only the existing sanitized bounded EvidenceItem text",
+      "forbidden": [
+        "course database hydration",
+        "new network access",
+        "full-text fetch",
+        "new Connector or MCP call",
+        "trusting model or caller self-assertions"
+      ],
+      "failure": "PRACTICE_EVIDENCE_SCOPE_MISMATCH and ABSTAIN"
+    },
+    "mixed_grounding": {
+      "span_ownership": "Server-controlled spans per source",
+      "guide_contract": "Existing seven-field GroundedPracticeGuide with list[GroundedSpanClaim]",
+      "allowed_claim_types": "course plus explicitly required verified external types",
+      "unrequested_external_types": "REJECT",
+      "required_source_coverage": "At least one valid claim for every normalized required source type",
+      "course_claims_with_external_required": "ALLOWED",
+      "insufficient_evidence": "ABSTAIN",
+      "guard_changes": "FORBIDDEN"
+    }
+  },
+  "allowed_product_files": [
+    "backend/agent/orchestrator.py"
+  ],
+  "allowed_test_files": [
+    "tests/test_practice_grounding_contract.py",
+    "tests/test_agent_orchestration.py",
+    "tests/test_phase3_e2e.py"
+  ],
+  "allowed_implementation": [
+    "Split practice evidence preparation into authorized course hydration and verified external-summary reuse",
+    "Correlate external evidence with current-run trusted tool provenance without new tool or network calls",
+    "Build request-scoped spans for both evidence classes",
+    "Add practice-specific allowed-source and required-source coverage validation without changing ordinary GroundedSpanAnswer behavior",
+    "Migrate the orchestration test provider and authorized INDEXED course fixture while preserving course+paper semantics",
+    "Expand the Phase3 knowledge fixture to seven explicit fields and six defensive local steps"
+  ],
+  "required_tests": {
+    "first_nodes": [
+      "tests/test_agent_orchestration.py::test_practice_task_prioritizes_course_and_paper_evidence",
+      "tests/test_phase3_e2e.py::test_phase3_full_demo_flow_offline"
+    ],
+    "targeted": [
+      "course+paper positive with seven fields, six steps, two real source citations, and required paper coverage",
+      "forged or untrusted paper rejection",
+      "tool/resource type mismatch rejection",
+      "missing current-run provenance correlation rejection",
+      "missing required paper rejection",
+      "external evidence causes no database hydration, new network access, or second tool call",
+      "existing practice grounding regressions"
+    ],
+    "full_suite": {
+      "command": ".venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider",
+      "isolated_basetemp_required": true,
+      "required_failed": 0,
+      "required_errors": 0,
+      "skips_xfails_warnings": "Report separately and do not count as passed; no unexplained new skip"
+    },
+    "formal_database_unchanged": true,
+    "browser_acceptance": false
+  },
+  "forbidden": [
+    "Remove paper from the test",
+    "Rename paper evidence as course",
+    "Ignore required paper",
+    "Accept externally supplied trust or provenance assertions without the server tool chain",
+    "Refetch external data or full text",
+    "Modify Citation Guard",
+    "Modify LLM schemas",
+    "Modify router",
+    "Modify Connector or MCP implementations",
+    "Modify public API, database, frontend, configuration, or timeouts",
+    "Modify a fourth test file",
+    "Weaken seven-field binding, span validation, support checks, or Guard thresholds",
+    "Run browser acceptance or command 8E"
+  ],
+  "scope_stop": "If implementation requires any file or behavior outside this addendum, output SCOPE_REVIEW_REQUIRED and stop.",
+  "success_output": {
+    "readiness": "IMPLEMENTATION_READY_FOR_TARGETED_ACCEPTANCE",
+    "command_8E_allowed": true
+  },
+  "implementation_executed": false
+}

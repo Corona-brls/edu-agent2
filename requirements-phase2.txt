@@ -1,0 +1,16 @@
+# Phase 2 optional/enhanced dependencies.
+# Install after requirements.txt when developing the full MCP-RAG version.
+
+mcp
+chromadb
+sentence-transformers
+langchain-text-splitters
+pypdf
+python-docx
+beautifulsoup4
+lxml
+httpx
+openai
+tenacity
+python-dotenv
+networkx

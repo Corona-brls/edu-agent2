@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+streamlit
+requests
+pydantic
+scikit-learn
+jieba
+pandas
+python-multipart
+pytest

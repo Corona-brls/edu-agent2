@@ -1,0 +1,299 @@
+{
+  "title": "扩展人工验收Paper最小修复计划",
+  "status": "READY_FOR_REVERSE_REVIEW",
+  "command_9I_allowed": true,
+  "basis": {
+    "diagnosis": "diagnostics/manual-acceptance-command9g-20261013T053755Z-4b5659e6/diagnostic_report.json",
+    "pipeline_matrix": "diagnostics/manual-acceptance-command9g-20261013T053755Z-4b5659e6/paper_pipeline_matrix.json",
+    "failed_run": "096b7b4c-87c5-4d5d-89ff-77e6a8c6a6d3",
+    "failed_trace": "d037fa2b-3af8-4f0c-9db3-191bede7f983",
+    "business_defect_count": 1
+  },
+  "scope": {
+    "product_fix": "Paper author propagation, citeable-author hashing, requested per-paper field/count completeness, paper query construction, and deterministic relevance convergence.",
+    "multi_source": "Compatibility regression and 9K dependency acceptance only; no diagnosis or independent repair is claimed.",
+    "not_in_scope": [
+      "Citation Guard threshold or support-predicate changes",
+      "GroundedSpanAnswer or EvidenceSpan public/schema changes",
+      "NVD, Standard, GitHub, local-course, Practice, innovation, teacher, authentication, RBAC, frontend, MCP or Connector transport changes",
+      "database schema migration",
+      "network, timeout, retry-budget or global tool-budget changes"
+    ]
+  },
+  "engineering_decisions": {
+    "author_storage_and_hash": {
+      "new_write_shape": "authors_json is a JSON array of canonical bounded author strings, not an object wrapper.",
+      "canonicalization": {
+        "max_authors": 20,
+        "max_chars_per_author": 160,
+        "rules": [
+          "drop non-string/empty entries",
+          "collapse whitespace and remove controls/newlines",
+          "preserve Unicode names",
+          "apply existing untrusted-text sanitization before model exposure",
+          "preserve stable source order and remove exact duplicates"
+        ]
+      },
+      "legacy_read": "_external_resource_row accepts both legacy {authors:[...]} and new list forms, always returns bounded list[str], and sets a server-owned transient authors_hash_covered flag. Legacy wrapped rows are readable for non-author claims but cannot supply citeable author spans until a verified resync writes the new shape/hash.",
+      "migration": "No database schema/data migration. A subsequent normal verified connector sync upgrades an existing row in place. Old cache remains usable for title/abstract/link queries; an author-required query fails closed with PAPER_REQUIRED_FIELD_UNAVAILABLE until refreshed.",
+      "content_integrity": "resource_content places canonical authors in citeable indexed text and content_hash includes the same canonical author list. Author-only changes therefore change the hash and normal sync/update behavior.",
+      "rollback_compatibility": "Old code json.loads a new array successfully; a rollback may omit new hash semantics but will not corrupt rows. Re-sync under either version remains an ordinary upsert."
+    },
+    "author_span_contract": {
+      "schema_decision": "Do not extend EvidenceItem, EvidenceSpan, GroundedSpanAnswer or public API schemas.",
+      "representation": "For a verified current-hash paper, _resource_evidence_text emits one bounded server-owned Authors line ahead of abstract text. _build_evidence_spans reserves one text span for this line and up to seven general text/abstract spans, preserving the existing maximum of eight text spans.",
+      "semantic_typing": "Build a request-scoped server-owned span_semantics map keyed by evidence_span_id with values paper_authors or paper_abstract. The map is produced from structured resource fields at evidence construction time, not inferred from model text or arbitrary caller labels.",
+      "spoofing_boundary": "Only the first server-generated author unit from a trusted paper with authors_hash_covered=true can receive paper_authors semantics. Abstract text that contains the word Authors cannot create an author field span.",
+      "model_role": "The model may select a supplied author span and write an extractive atomic claim; the server never creates, replaces or rewrites author claims."
+    },
+    "paper_request_contract": {
+      "parser": "Add a deterministic multilingual PaperRequestContract parser in orchestrator code. It recognizes generic aliases for title, author, abstract/summary clue, link/source URL and Arabic/Chinese paper counts; it does not match the entire 9F sentence or any paper ID.",
+      "count_semantics": {
+        "explicit_exact_1_to_3": "Require exactly the requested number of selected related papers.",
+        "explicit_up_to_1_to_3": "Allow 1 through the requested maximum.",
+        "unspecified": "Select up to three and require at least one.",
+        "above_three_or_claim_budget_overflow": "Fail closed before generation with PAPER_REQUEST_COUNT_UNSUPPORTED/PAPER_REQUEST_TOO_WIDE; do not expand GroundedSpanAnswer max claims in this repair."
+      },
+      "field_semantics": {
+        "title": "A claim bound to that paper's title span when explicitly requested.",
+        "authors": "A claim bound to that paper's server-owned paper_authors text span when explicitly requested.",
+        "abstract_clue": "A claim bound to that paper's paper_abstract span when explicitly requested.",
+        "link": "Satisfied by that cited paper's trusted Citation DTO source_url/provenance HTTPS URL. The model is not required to copy a URL into answer prose.",
+        "default": "Do not force fields the user did not request, except that every selected source must keep a trusted HTTPS provenance URL and at least one grounded claim."
+      },
+      "pre_generation_gate": "After relevance filtering, exclude papers missing required upstream fields. If too few remain, abstain honestly with PAPER_REQUIRED_FIELD_UNAVAILABLE or PAPER_RELEVANCE_INSUFFICIENT; never ask the model to invent missing metadata.",
+      "candidate_gate": "For every selected paper source_id, validate all required claim-backed fields against span_semantics and validate link availability against server-owned provenance. Reject missing fields with PAPER_FIELD_COVERAGE and a bounded missing source/field matrix.",
+      "guard_boundary": "Citation Guard remains unchanged and continues to validate every emitted claim's source/span support and relevance. Completeness is a separate orchestrator contract and is checked before Guard success can become COMPLETED."
+    },
+    "query_and_relevance": {
+      "topic_extraction": "For paper_search_real, strip output-format clauses, requested counts/fields, local-sample prohibitions and non-paper source clauses from the user goal. Prefer explicit quoted or ASCII technical topic spans; otherwise map bounded audited Chinese/English telecom-security aliases to canonical English concepts. Preserve unknown significant topic terms rather than replacing them with the 9F topic.",
+      "cross_language_support": "Both the query and candidate title/abstract/tags are normalized to the same canonical bilingual concept profile. Therefore a Chinese query such as 5G核心网攻击检测 can match English metadata such as 5G core network attack detection without relying on same-language token overlap.",
+      "over_fetch": "Use the same single paper_search_real tool call with top_k=min(10,max(6,target_count*3)). Do not add a second Connector/MCP call. Preserve source=auto and the existing Semantic Scholar to arXiv fallback, cache and provenance behavior.",
+      "deterministic_scoring": [
+        "exact DOI/arXiv/title locator match has priority",
+        "canonical domain/entity concept overlap",
+        "canonical security/task concept overlap",
+        "bounded exact technical phrase/token overlap",
+        "existing connector/evidence score only as a final tie-breaker",
+        "stable external_id tie-break for reproducibility"
+      ],
+      "minimum_gate": "When the request contains both domain/entity and task/security concepts, a candidate must match at least one concept from each group; a generic shared token such as 5G alone is insufficient. With only one populated group, require a match in that group. Explicit locator queries bypass topic scoring only for the matching locator.",
+      "selection": "Filter first, rank deterministically, deduplicate by canonical source identity/URL/content hash, then select only the request contract's count. The model never sees filtered-out papers.",
+      "honest_shortfall": "If the number of related and field-complete trusted papers is below an exact requested count, return ABSTAINED with a bounded count summary; do not retain an unrelated result to reach the count."
+    },
+    "retry_and_error_semantics": {
+      "PAPER_REQUEST_COUNT_UNSUPPORTED": "Explicit count exceeds the bounded no-schema-change repair capacity.",
+      "PAPER_QUERY_EMPTY": "No auditable paper topic remains after stripping instructions; ask for a topic or abstain without a tool call.",
+      "PAPER_RELEVANCE_INSUFFICIENT": "The one tool result contains fewer related trusted papers than the required minimum.",
+      "PAPER_REQUIRED_FIELD_UNAVAILABLE": "Related papers exist but upstream metadata lacks a required field, including legacy authors not covered by the current hash.",
+      "PAPER_FIELD_COVERAGE": "The model candidate omits a required field claim for at least one selected paper.",
+      "CONNECTOR_RATE_LIMIT_and_transport": "Preserve existing tool/third-party errors and do not misclassify them as semantic defects.",
+      "guard_errors": "Preserve existing exact Citation Guard error codes and fail closed.",
+      "retry": "Only PAPER_FIELD_COVERAGE, parse/schema failures, or existing grounded/Guard failures may consume the one existing generation retry. Retry reuses identical selected evidence/spans, includes only bounded source_id/field enums or existing safe failure tuple, changes the actual model messages, and does not repeat Planner, MCP, Connector or tool calls.",
+      "final_failure": "A failed second candidate remains ABSTAINED with its true final error. DeepSeek failures never invoke Template success semantics."
+    }
+  },
+  "root_cause_mapping": [
+    {
+      "diagnosis": "AUTHOR_STORAGE_SHAPE_MISMATCH",
+      "code_change": "Write authors_json arrays, unwrap legacy rows, expose server-owned current-hash coverage.",
+      "tests": ["new array roundtrip", "legacy wrapped-row read", "invalid/malicious author normalization"]
+    },
+    {
+      "diagnosis": "AUTHOR_SPAN_TRUNCATION",
+      "code_change": "Reserve a bounded typed author text span before the seven general paper text spans.",
+      "tests": ["more-than-eight-sentence abstract", "author span semantic type", "spoofed Authors text is not typed"]
+    },
+    {
+      "diagnosis": "AUTHOR_CONTENT_HASH_GAP",
+      "code_change": "Use the same canonical author list in resource_content and content_hash.",
+      "tests": ["author-only change changes hash", "stable normalization preserves hash", "legacy author claims fail closed until resync"]
+    },
+    {
+      "diagnosis": "PAPER_REQUESTED_FIELD_COVERAGE_GAP",
+      "code_change": "Parse a generic paper request contract and validate each selected paper's required fields/count before and after model generation.",
+      "tests": ["three-paper full-field pass", "missing one author", "missing one abstract clue", "link via Citation DTO", "one retry then abstain"]
+    },
+    {
+      "diagnosis": "PAPER_QUERY_CONSTRUCTION_GAP",
+      "code_change": "Build a bounded topical paper query instead of forwarding the full imperative instruction.",
+      "tests": ["mixed Chinese instructions plus English topic", "all-Chinese topic to English canonical query", "multi-source paper clause extraction"]
+    },
+    {
+      "diagnosis": "PAPER_RELEVANCE_CONVERGENCE_GAP",
+      "code_change": "Over-fetch once, bilingual-normalize, filter/rank/deduplicate deterministically, and fail honestly on shortfall.",
+      "tests": ["S3-like unrelated candidate rejected", "generic 5G overlap insufficient", "related result shortage", "exact DOI locator", "stable ordering"]
+    }
+  ],
+  "frozen_file_whitelist": {
+    "product": [
+      {
+        "path": "backend/storage/logger.py",
+        "allowed_functions": ["_upsert_external_resource_in_conn", "_external_resource_row", "a private bounded authors compatibility helper"],
+        "allowed_change": "New list write shape, legacy wrapper read compatibility, and transient server-owned authors hash-coverage marker only."
+      },
+      {
+        "path": "backend/resources/normalizer.py",
+        "allowed_functions": ["resource_content", "content_hash", "new pure canonical author helper"],
+        "allowed_change": "Canonical bounded authors in indexed content and hash only."
+      },
+      {
+        "path": "backend/agent/orchestrator.py",
+        "allowed_functions": ["_prefer_explicit_tool_request", "_decision_for_missing_source", "_normalized_tool_arguments", "_trusted_tool_evidence", "_resource_evidence_text", "_build_evidence_spans or a private span-bundle helper", "_answer_evidence", "_validate_grounded_span_answer", "_answer", "_retry_grounded_answer_once", "new private PaperRequestContract/query/relevance/completeness helpers"],
+        "allowed_change": "Paper-only query/over-fetch, relevance selection, author span semantics, preflight/candidate completeness, bounded retry detail and error semantics. No Practice or unrelated-source behavior changes."
+      },
+      {
+        "path": "backend/llm/prompts.py",
+        "allowed_functions": ["_grounded_span_answer_contract", "new private bounded paper-contract serializer"],
+        "allowed_change": "Expose selected paper source IDs, required fields/count, span semantics and safe retry guidance to actual structured messages."
+      }
+    ],
+    "tests": [
+      {
+        "path": "tests/test_j1_resource_provenance.py",
+        "allowed_change": "Verified author storage/service/MCP roundtrip, legacy row compatibility and author-sensitive hash tests."
+      },
+      {
+        "path": "tests/test_agent_orchestration.py",
+        "allowed_change": "Offline Paper request parser/query/over-fetch/relevance/shortfall/author-span/retry and orchestration call-count tests."
+      },
+      {
+        "path": "tests/test_r3_grounded_answer_contract.py",
+        "allowed_change": "Per-paper field/count contract, span semantics, link-via-citation and negative binding/completeness tests."
+      }
+    ],
+    "explicitly_forbidden": [
+      "backend/guards/citation_guard.py",
+      "backend/llm/schemas.py",
+      "backend/agent/router.py",
+      "backend/agent/state.py",
+      "backend/resources/service.py",
+      "backend/connectors/arxiv.py",
+      "backend/connectors/semantic_scholar.py",
+      "mcp_server",
+      "frontend",
+      "database migrations or formal database",
+      "configuration, .env, timeouts, retries or tool budgets"
+    ],
+    "scope_rule": "If implementation requires any forbidden or additional product/test file, 9J must stop with SCOPE_REVIEW_REQUIRED; 9I must approve an explicit addendum first."
+  },
+  "tests": {
+    "method": "All 9J automated tests use offline deterministic fixtures; none may call live Semantic Scholar, arXiv, DeepSeek, MCP processes or browser. The real frozen inputs are reserved for 9K.",
+    "red_green": [
+      "verified connector paper with two authors persists and reads as list[str]",
+      "legacy {authors:[...]} row reads safely and cannot supply author claims until current-hash refresh",
+      "author-only metadata change changes resource_content/content_hash",
+      "long abstract retains a typed bounded author span",
+      "malicious, duplicate, control-character and overlong authors are bounded and cannot spoof span semantics",
+      "generic bilingual field/count parser recognizes multiple phrasings without matching the whole 9F sentence",
+      "Chinese-only paper topic produces an English canonical search profile/query and matches English fixture metadata",
+      "one paper_search_real call over-fetches within top_k<=10 while preserving source=auto",
+      "three related field-complete papers pass title/author/abstract coverage; HTTPS links are satisfied by citations without URL prose claims",
+      "S3-like broad 5G/NOMA candidate is filtered; fewer than three relevant papers returns PAPER_RELEVANCE_INSUFFICIENT",
+      "missing upstream authors/abstract returns PAPER_REQUIRED_FIELD_UNAVAILABLE",
+      "candidate missing one selected paper's author or abstract returns PAPER_FIELD_COVERAGE, retries once with same evidence, and passes only when coverage is corrected",
+      "two incomplete candidates abstain; no Template success and no third generation",
+      "wrong source/span, forged author, duplicate paper, missing citation URL and untrusted source remain rejected",
+      "prompt-injection text cannot alter request contract or span semantics",
+      "Planner/MCP/Connector/tool call counts remain one across generation retry"
+    ],
+    "targeted_files": [
+      "tests/test_j1_resource_provenance.py",
+      "tests/test_agent_orchestration.py",
+      "tests/test_r3_grounded_answer_contract.py"
+    ],
+    "compatibility_regression_existing_unmodified": [
+      "tests/test_j3_agent_evidence.py",
+      "tests/test_l1_agent_grounding.py",
+      "tests/test_s2_multi_source_citations.py",
+      "tests/test_citation_guard.py",
+      "tests/test_practice_grounding_contract.py",
+      "tests/test_phase3_e2e.py",
+      "tests/test_api_endpoints.py",
+      "tests/connectors/test_connector_framework.py"
+    ],
+    "compatibility_expectations": [
+      "Semantic Scholar failure followed by arXiv success remains one paper tool call.",
+      "fresh_cache uses only current-hash authors for author claims.",
+      "NVD, Standard, GitHub and three-source structured grounding keep their existing contracts.",
+      "Course-only and Practice paths never receive Paper request/count semantics.",
+      "Existing Citation Guard positive and negative tests pass unchanged."
+    ],
+    "full_suite": "After all targeted and compatibility stages pass on the final code state, run one complete pytest with a fresh isolated basetemp; require 0 failed and 0 errors, and report skips/xfails/warnings separately without counting skips as passes."
+  },
+  "implementation_order_for_9J": [
+    "Record pre-change status and hashes for frozen files, formal database and .env.",
+    "Add storage/hash/long-abstract/request-contract/query/relevance red tests and prove they fail for the intended old behavior, not fixture errors.",
+    "Implement canonical author storage/hash and legacy fail-closed compatibility.",
+    "Implement PaperRequestContract, topical query/over-fetch, bilingual relevance convergence and pre-generation honest-shortfall gates.",
+    "Implement request-scoped span semantics, per-paper field/count candidate validation and bounded same-evidence retry guidance.",
+    "Run the three modified test files, then the frozen compatibility suite, then one final full isolated pytest.",
+    "Verify no forbidden files, formal database or .env changed; save an implementation report and stop before 9K."
+  ],
+  "rollback": {
+    "method": "Revert only the four product files and three test files from the 9J change set. No database rollback is required because there is no schema migration.",
+    "new_rows": "New authors_json arrays remain parseable by the pre-repair reader; a normal later sync can rewrite them under either version.",
+    "cache": "Do not bulk-delete cache. If rollback occurs, preserve evidence and let normal TTL/upsert behavior operate.",
+    "stop_conditions": [
+      "a seventh modified file is required",
+      "GroundedSpanAnswer/EvidenceSpan or public API schema change becomes necessary",
+      "Citation Guard, Connector/MCP, router/state, Practice or RBAC change becomes necessary",
+      "formal database write or migration is required",
+      "deterministic bilingual relevance cannot separate the controlled related/unrelated fixtures without weakening safety"
+    ]
+  },
+  "review_challenges_for_9I": [
+    "Prove the server-owned paper_authors semantic span cannot be forged by abstract text or tool/caller metadata.",
+    "Challenge whether the transient legacy authors_hash_covered rule safely preserves old cache without citing unhashed authors.",
+    "Test that bilingual canonical concepts support Chinese-to-English retrieval while generic 5G overlap alone cannot pass relevance.",
+    "Verify exact/up-to/default count semantics fit GroundedSpanAnswer's ten-claim ceiling; reject any hidden Schema expansion.",
+    "Verify link completeness is satisfied by the same cited source's HTTPS Citation DTO and does not force URL prose.",
+    "Verify over-fetch changes only top_k inside the single existing tool call and does not alter fallback/cache/provenance behavior.",
+    "Verify completeness retry carries only source IDs and field enums, changes actual messages, and never repeats upstream calls.",
+    "Verify Multi-source remains a compatibility/9K dependency item rather than a retroactive confirmed defect."
+  ],
+  "gates": {
+    "9I": {
+      "success": "APPROVED_FOR_IMPLEMENTATION and command_9J_allowed=true",
+      "failure": "REVISE or REJECTED; no implementation"
+    },
+    "9J": {
+      "success": "IMPLEMENTATION_READY_FOR_PAPER_ACCEPTANCE and command_9K_allowed=true",
+      "requirements": [
+        "only frozen files changed",
+        "all red/green and compatibility stages pass",
+        "final full pytest has 0 failed and 0 errors",
+        "formal database and .env unchanged",
+        "no real model, network, service or browser execution"
+      ]
+    },
+    "9K": {
+      "environment": "Fresh isolated SQLite/vector/cache/uploads and the previously approved live-services/host-network profile. No extra paper-search readiness call.",
+      "paper_input": "请使用真实论文搜索检索 5G core network attack detection，返回 3 篇论文的标题、作者、摘要线索和可核验来源链接；不要用本地论文样例代替真实联网结果。",
+      "multi_source_input": "请检索并综合真实的 5G 安全论文、NVD 中的 CVE-2021-44228 漏洞记录，以及 GitHub 上的 Open5GS 开源项目。请基于各自来源给出可核验的原子事实、逐项引用和实验建议。",
+      "sequence": "Submit Paper once through the real student page. Only after strict Paper PASS, submit Multi-source once. No semantic-result reruns or result picking.",
+      "paper_pass": [
+        "one paper_search_real tool call with live or same-batch valid fresh cache and real provenance",
+        "three unique related papers",
+        "each paper has grounded title, author and abstract-clue claims",
+        "each cited paper has the matching HTTPS Citation/provenance URL; URL prose is not required",
+        "DeepSeek, fallback_used=false, COMPLETED/ANSWERED",
+        "Citation Guard pass and no duplicate Planner/MCP/Connector/tool calls"
+      ],
+      "multi_source_pass": [
+        "current run obtains paper, vulnerability and project evidence",
+        "each required source has correct source/span claims and HTTPS provenance",
+        "DeepSeek, fallback_used=false, COMPLETED/ANSWERED",
+        "at most one same-evidence generation retry and no repeated upstream calls"
+      ],
+      "failure_branches": {
+        "429_or_upstream_unavailable": "POST_V6_MANUAL_ACCEPTANCE_PARTIAL / THIRD_PARTY_LIMITATION; retain PASS evidence and do not start product repair.",
+        "paper_semantic_failure": "POST_V6_MANUAL_ACCEPTANCE_FAIL / PRODUCT_DEFECT / DIAGNOSIS_REQUIRED for that unique Paper run; do not run Multi-source.",
+        "multi_source_semantic_failure_after_paper_pass": "Keep Paper PASS_SAVED and diagnose only the unique Multi-source run.",
+        "all_pass": "POST_V6_MANUAL_ACCEPTANCE_PASS by merging 9K with 9E, 9D-S1 and 8V evidence."
+      }
+    }
+  },
+  "evidence_policy": "Save simple JSON, test statistics, run_id/trace_id and necessary screenshots. Do not add ZIP-member, collection-fingerprint, directory-hash, fixed-file-count or global-mtime gates.",
+  "non_blocking_environment_note": "The two 9G host-ACL temporary directories contain only synthetic data. Do not modify their ACL/ownership again. Future temporary work must use the project tmp directory."
+}

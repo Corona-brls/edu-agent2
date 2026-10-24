@@ -1,0 +1,221 @@
+{
+  "plan_name": "扩展人工验收最小修复计划",
+  "status": "READY_FOR_REVERSE_REVIEW",
+  "command_9C_allowed": true,
+  "basis": {
+    "diagnostic_batch": "manual-acceptance-command9a-20261011T141101Z-9a6f20",
+    "diagnostic_status": "DIAGNOSIS_COMPLETE",
+    "command_9B_prerequisite_satisfied": true,
+    "confirmed_product_defect_groups": 3,
+    "acceptance_input_or_evidence_gap_groups": 1,
+    "plan_changing_unresolved_items": 0
+  },
+  "workflows": {
+    "external_grounding": {
+      "decision": "FIX_PRODUCT",
+      "root_causes": [
+        "SINGLE_EXTERNAL_GROUNDING_PATH_GAP",
+        "REQUESTED_METADATA_MAPPING_GAP",
+        "PAPER_DOI_IDENTITY_COMPATIBILITY_GAP",
+        "EXTERNAL_FAILURE_OBSERVABILITY_GAP"
+      ],
+      "constraints": [
+        "single-source paper/vulnerability/standard/project use GroundedSpanAnswer",
+        "paper authors and standard metadata/full-text-state fields are server-mapped and bounded",
+        "NVD mapping remains unchanged",
+        "DOI compatibility is limited to verified paper external_id spans",
+        "at most one generation retry and no repeated Planner/Connector/MCP/tool call",
+        "DeepSeek failure cannot be represented as Template success",
+        "general Citation Guard thresholds remain unchanged"
+      ]
+    },
+    "citation_display_sequence": {
+      "decision": "FIX_PRODUCT",
+      "repair_contract": "Preserve the server-authored source_id through Citation DTO and render the same marker; only legacy responses missing source_id may use positional fallback."
+    },
+    "innovation_empty_sources": {
+      "decision": "AMEND_ACCEPTANCE_INPUT",
+      "code_change": false,
+      "fixed_topic": "5G NAS authentication",
+      "fixed_current_plan": "比较正常认证与重放检测的事件序列、检测命中和误报，仅使用课程隔离日志。",
+      "fixed_followup_answer": "以检测命中率、误报率和事件序列差异为指标，使用同一批隔离日志建立正常组、重放组和消融对照组；不接触公网目标，也不使用真实用户数据。",
+      "fixture_rule": "Prepare at least one relevant, trusted, provenance-complete case through normal upload/index or trusted Connector flow; never write the database directly or lower relevance/trust gates."
+    },
+    "anonymous_teacher_deep_link": {
+      "decision": "FIX_PRODUCT",
+      "subtype": "UX_ROUTE_ENTRYPOINT_DEFECT",
+      "security_finding": "No data leak and no backend RBAC defect",
+      "repair_contract": "Direct Streamlit page execution calls render(), while anonymous/non-teacher gates and backend RBAC remain unchanged."
+    }
+  },
+  "allowed_product_files": {
+    "backend/agent/orchestrator.py": [
+      "route any required trusted single external source to GroundedSpanAnswer without changing pure-course or Practice paths",
+      "map bounded paper authors and standard metadata/local-verification fields while preserving NVD mapping",
+      "reuse evidence for at most one grounded generation retry",
+      "disable successful Template fallback for externally grounded DeepSeek failures",
+      "persist redacted Guard failure tuples and bounded parse diagnostics",
+      "emit stable Citation.source_id"
+    ],
+    "backend/llm/prompts.py": [
+      "define GroundedSpanAnswer contracts for paper, vulnerability, standard, and project identity/exact spans",
+      "state that standard metadata is not verified standard full text",
+      "place bounded server retry feedback in actual provider messages"
+    ],
+    "backend/guards/citation_guard.py": [
+      "add narrow verified-paper DOI external_id compatibility",
+      "add metadata-only standard identity templates",
+      "add redacted failure_detail for general grounded validation",
+      "do not change general support, relevance, or token thresholds"
+    ],
+    "backend/schemas.py": [
+      "add backward-compatible Citation.source_id response field and require new server responses to populate it"
+    ],
+    "frontend/pages/student.py": [
+      "render citation cards with server source_id and use positional fallback only for legacy missing-field responses"
+    ],
+    "frontend/pages/teacher.py": [
+      "invoke render() only when the page file is directly executed; retain existing login/role gates"
+    ]
+  },
+  "allowed_test_files": {
+    "tests/test_r3_grounded_answer_contract.py": "single-source structured routing, prompt and actual provider messages",
+    "tests/test_s2_multi_source_citations.py": "DOI, standard identity, required-source coverage and Guard negatives",
+    "tests/test_agent_orchestration.py": "metadata mapping, retry/tool counts, Template fail-closed and redacted observability",
+    "tests/test_api_endpoints.py": "Citation.source_id response compatibility",
+    "tests/test_student_frontend_session.py": "source marker/card identity and legacy fallback",
+    "tests/test_teacher_frontend_session.py": "new anonymous deep-link red/green and role-gate tests"
+  },
+  "forbidden_changes": [
+    "Connector or MCP implementation",
+    "backend/llm/schemas.py",
+    "router or retriever",
+    "database schema or migration",
+    "authentication core or RBAC",
+    "innovation algorithms, aliases, relevance thresholds, or provenance trust gates",
+    "global tool budget or business timeouts",
+    "general Citation Guard threshold relaxation",
+    "server-side silent claim/source/span rewriting",
+    "treating standard metadata as verified full text",
+    "logging keys, Authorization headers, candidate bodies, complete private chunks, or Pydantic input/ctx"
+  ],
+  "external_grounding_contract": {
+    "supported_sources": ["paper", "vulnerability", "standard", "project"],
+    "required_source_coverage": true,
+    "max_generation_candidates": 2,
+    "repeat_planner": false,
+    "repeat_connector": false,
+    "repeat_mcp": false,
+    "repeat_tool": false,
+    "template_success_fallback": false,
+    "standard_full_text_claims_from_metadata": false,
+    "doi_policy": {
+      "paper_only": true,
+      "current_run_trusted_evidence_only": true,
+      "external_id_span_only": true,
+      "canonical_value_must_match_span": true,
+      "infer_from_url": false
+    },
+    "observability": {
+      "guard_failure_fields": [
+        "attempt",
+        "error_code",
+        "ordinal",
+        "source_id",
+        "span_id",
+        "claim_length",
+        "claim_sha256",
+        "normalization_flags"
+      ],
+      "parse_failure_fields": ["root_error_type", "validation_error_loc", "validation_error_type"],
+      "max_validation_error_items": 8,
+      "forbidden_payloads": ["candidate_text", "claim_text", "chunk_text", "pydantic_input", "pydantic_ctx"]
+    }
+  },
+  "citation_contract": {
+    "new_response_source_id_required": true,
+    "source_id_may_be_non_contiguous": true,
+    "answer_marker_card_label_same": true,
+    "legacy_missing_source_id_positional_fallback": true,
+    "database_migration_required": false
+  },
+  "red_green_tests": [
+    "single-source paper/NVD/standard/project selects GroundedSpanAnswer",
+    "paper authors and standard state fields become bounded spans while NVD fields remain unchanged",
+    "trusted exact DOI passes and forged, wrong-type, URL-derived, or wrong-span DOI fails",
+    "attempt-1 ValidationError records only bounded loc/type diagnostics",
+    "retry changes actual provider messages and does not repeat upstream calls",
+    "two invalid candidates still abstain and Template does not report success",
+    "S2 remains S2 through API and citation card",
+    "anonymous teacher direct page displays login gate and makes no business API request",
+    "student and teacher role behavior remains authorized"
+  ],
+  "compatibility_regression": [
+    "course-only answers",
+    "Practice full suite and course+paper",
+    "Flow 03 and Flow 08",
+    "GitHub single-source",
+    "multi-source required coverage",
+    "prompt injection and evidence-insufficient negatives",
+    "course and role authorization",
+    "resource portal and innovation tests",
+    "phase3 e2e"
+  ],
+  "command_9D_gate": {
+    "run_order": [
+      "root-cause nodes",
+      "external grounding directed tests",
+      "citation DTO/UI tests",
+      "teacher page tests",
+      "shared compatibility regression",
+      "one final full pytest with a fresh isolated basetemp"
+    ],
+    "required_failed": 0,
+    "required_errors": 0,
+    "skips_count_as_pass": false,
+    "success_status": "IMPLEMENTATION_READY_FOR_TARGETED_ACCEPTANCE",
+    "next_gate": "command_9E_allowed=true"
+  },
+  "command_9E_fixed_inputs": {
+    "paper": "请使用真实论文搜索检索 5G core network attack detection，返回 3 篇论文的标题、作者、摘要线索和可核验来源链接；不要用本地论文样例代替真实联网结果。",
+    "nvd": "请查询 NVD 中的 CVE-2021-44228，给出 CVE 编号、描述、严重性或 CVSS、CWE（若来源提供）、发布时间和 NVD 官方链接；不要提供利用步骤。",
+    "github_regression": "请使用真实 GitHub 项目搜索查找 Open5GS mobile core，给出仓库全名、简介和可核验链接；不要执行或下载仓库代码。",
+    "standard": "请查询 3GPP TS 33.501 的标准元数据和官方链接，并说明当前是否有经过核验的本地标准全文。",
+    "multi_source": "请检索并综合真实的 5G 安全论文、NVD 中的 CVE-2021-44228 漏洞记录，以及 GitHub 上的 Open5GS 开源项目。请基于各自来源给出可核验的原子事实、逐项引用和实验建议。",
+    "upload_citation": "请仅根据刚上传的课程资料，原样复述包含 F8-DIAG-UPLOAD-A 的完整一句，并显示引用和来源。",
+    "innovation_topic": "5G NAS authentication",
+    "innovation_current_plan": "比较正常认证与重放检测的事件序列、检测命中和误报，仅使用课程隔离日志。",
+    "innovation_followup": "以检测命中率、误报率和事件序列差异为指标，使用同一批隔离日志建立正常组、重放组和消融对照组；不接触公网目标，也不使用真实用户数据。",
+    "teacher_deep_link": "/teacher"
+  },
+  "command_9E_scope": {
+    "fresh_isolated_runtime": true,
+    "real_codex_iab": true,
+    "affected_external_flows": ["paper", "nvd", "github_regression", "standard", "multi_source"],
+    "citation_display": true,
+    "innovation_corrected_input": true,
+    "anonymous_teacher_deep_link": true,
+    "rerun_unaffected_historical_passes": false,
+    "semantic_failure_retries_for_green_selection": false
+  },
+  "review_challenges_for_9C": [
+    "single external structured routing must not capture pure-course or Practice paths",
+    "metadata mapping must be bounded and prompt-injection resistant",
+    "DOI acceptance must remain bound to trusted paper external_id spans",
+    "standard metadata must not support standard full-text claims",
+    "retry feedback must reach actual provider messages without repeated tools",
+    "Template must not mask external grounded DeepSeek failure",
+    "Guard and parse diagnostics must be useful without retaining sensitive text",
+    "new Citation.source_id must be populated for new responses and legacy fallback must not rebind sources",
+    "teacher page entrypoint must not double-render under frontend/app.py",
+    "innovation acceptance must use relevant trusted evidence without threshold relaxation",
+    "9E must remain targeted and preserve one-run failure evidence"
+  ],
+  "database_migration_required": false,
+  "rollback": {
+    "external_grounding": "Revert the scoped orchestrator/prompt/Guard edits together and rerun directed plus full regression.",
+    "citation_display": "Revert orchestrator, response schema, frontend rendering, and associated tests as one contract unit.",
+    "teacher_deep_link": "Revert only the direct-entry guard and its new tests.",
+    "data_rollback": "Not required."
+  }
+}

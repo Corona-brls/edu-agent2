@@ -1,0 +1,35 @@
+[
+  {
+    "id": "competition-5g-nas-fuzzing",
+    "title": "5G NAS protocol fuzzing challenge",
+    "summary": "Design a reproducible experiment that mutates NAS messages, records state transitions, and explains which authentication or replay checks should be observed.",
+    "module": "5G NAS",
+    "year": 2026,
+    "tags": ["5G NAS", "fuzzing", "protocol security"],
+    "source": "teacher_dataset",
+    "url": "",
+    "updated_at": "2026-09-24T00:00:00"
+  },
+  {
+    "id": "competition-blockchain-covert-channel",
+    "title": "Blockchain covert communication innovation topic",
+    "summary": "Build a small prototype for covert signalling in transaction metadata, then evaluate detectability, throughput, and anti-analysis improvements.",
+    "module": "区块链隐蔽通信",
+    "year": 2026,
+    "tags": ["blockchain", "covert channel", "innovation"],
+    "source": "teacher_dataset",
+    "url": "",
+    "updated_at": "2026-09-24T00:00:00"
+  },
+  {
+    "id": "competition-llm-vuln-triage",
+    "title": "LLM vulnerability triage assistant topic",
+    "summary": "Compare retrieval-grounded vulnerability triage with prompt-only triage on a small labeled dataset and report failure cases.",
+    "module": "LLM 漏洞检测",
+    "year": 2026,
+    "tags": ["LLM", "vulnerability", "triage"],
+    "source": "teacher_dataset",
+    "url": "",
+    "updated_at": "2026-09-24T00:00:00"
+  }
+]

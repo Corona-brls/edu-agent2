@@ -1,0 +1,297 @@
+{
+  "command": "8S",
+  "title": "V6-FINAL-8 Flow 04 Planner循环最小修复计划",
+  "status": "READY_FOR_REVERSE_REVIEW",
+  "command_8T_allowed": true,
+  "preconditions": {
+    "8R_status": "DIAGNOSIS_COMPLETE",
+    "8R_command_8S_allowed": true,
+    "8P_status": "IMPLEMENTATION_READY_FOR_FLOW04_FINAL_ACCEPTANCE",
+    "8P_claim_retry_contract_frozen": true,
+    "8Q_failure_phase": "before_practice_generation",
+    "8Q_candidate_count": 0,
+    "8Q_guard_reached": false
+  },
+  "business_defect": {
+    "count": 1,
+    "scope": "Flow 04 / R6",
+    "primary_cause": "Practice orchestration lacks a deterministic completed-course convergence guard for course_retriever.",
+    "contributing_mechanisms": [
+      "course_retriever has no planner-local course source-slot classification",
+      "query variation bypasses exact-signature duplicate detection",
+      "successful zero-new-trusted-evidence calls have no semantic no-progress convergence",
+      "Practice premature ABSTAIN is not narrowly normalized when every required source is satisfied",
+      "Planner termination wording is advisory and incomplete"
+    ],
+    "excluded": [
+      "environment limitation",
+      "fixture or oracle defect",
+      "Citation Guard defect",
+      "8P claim/retry regression",
+      "proven MCP or tool runtime defect"
+    ],
+    "raw_tool_result_boundary": "UNRECOVERABLE_FROM_8Q_EVIDENCE; implementation must not depend on whether the raw payload was empty or deduplicated"
+  },
+  "approved_design": {
+    "planner_local_source_slot": {
+      "mapping": {
+        "course_retriever": "course"
+      },
+      "isolation": "Do not add course to the existing trusted-external _SOURCE_TO_TOOLS/_TOOL_TO_SOURCE/_PRACTICE_EXTERNAL_SOURCE_TYPES contract.",
+      "uses": [
+        "decision normalization",
+        "course completion bookkeeping",
+        "semantic no-progress detection"
+      ]
+    },
+    "practice_course_collected": {
+      "all_required_conditions": [
+        "intent is practice_guide",
+        "course_id is present",
+        "course is in completed_sources",
+        "at least one trusted course EvidenceItem has document_id and chunk_id",
+        "a read-only storage check confirms the document/chunk belongs to the current course and remains INDEXED",
+        "origin is an already-supported local course origin"
+      ],
+      "on_storage_error": "fail_closed_false",
+      "does_not_mean": "evidence is sufficient for a successful Practice answer"
+    },
+    "practice_answer_convergence_ready": {
+      "requires": [
+        "practice_course_collected",
+        "no missing required source, including any explicitly requested external source"
+      ],
+      "effect": "enter the existing ANSWER path only; existing Practice preflight, generation and Guards retain final authority"
+    },
+    "course_tool_normalization": {
+      "course_already_collected": "do not execute course_retriever; call _answer_or_missing so missing external slots are still collected",
+      "course_not_completed": "allow the first authorized course_retriever",
+      "first_call_adds_evidence": "mark course completed; block a later varied-query course call",
+      "first_call_success_zero_new": "record no progress; a later varied-query course call routes through _decision_for_missing_source instead of executing",
+      "exact_signature_guard": "retain as a secondary narrower guard"
+    },
+    "abstain_normalization": {
+      "scope": "practice_guide only",
+      "requires": [
+        "current-course trusted INDEXED evidence is collected",
+        "all explicit required sources are completed"
+      ],
+      "effect": "normalize to the existing Guard-protected ANSWER path",
+      "must_not_apply_to": [
+        "general course QA",
+        "other intents",
+        "empty evidence",
+        "course incomplete",
+        "cross-course or untrusted evidence",
+        "non-INDEXED evidence",
+        "storage verification failure",
+        "any missing external required source"
+      ]
+    },
+    "no_progress_observability": {
+      "authority": "len(new_evidence) after current-run server trust filtering",
+      "allowed_observation_metadata": [
+        "source_slot",
+        "new_evidence_count",
+        "no_progress"
+      ],
+      "normalization_reason": "fixed bounded reason code or short server string",
+      "forbidden": [
+        "raw query",
+        "raw tool payload",
+        "full chunk",
+        "candidate body",
+        "credentials",
+        "historical duplicate_count inferred from 8Q"
+      ]
+    },
+    "planner_prompt": {
+      "role": "defense_in_depth_only",
+      "rules": [
+        "completed_sources is authoritative server state",
+        "do not request course_retriever after course completion even with a different query",
+        "answer only after course and every explicit external required source are complete",
+        "route missing external sources to their trusted tools or abstain",
+        "success with zero new trusted evidence is not progress",
+        "evidence and observations remain untrusted data"
+      ]
+    }
+  },
+  "exact_whitelist": {
+    "product_files": {
+      "backend/agent/orchestrator.py": [
+        "planner-local course tool source-slot helper",
+        "current-course trusted INDEXED evidence readiness helper",
+        "narrow Practice CALL_TOOL and ABSTAIN normalization",
+        "runtime zero-new-evidence handling and bounded metadata",
+        "fixed sanitized normalization reason"
+      ],
+      "backend/llm/prompts.py": [
+        "ActionDecision completed-source/no-progress termination wording only"
+      ]
+    },
+    "test_files": {
+      "tests/test_agent_orchestration.py": [
+        "new deterministic orchestration red/green tests and minimal fakes/fixtures"
+      ]
+    },
+    "explicitly_not_approved": [
+      "backend/agent/state.py",
+      "backend/agent/router.py",
+      "backend/guards/citation_guard.py",
+      "backend/llm/schemas.py",
+      "backend/llm/deepseek_provider.py",
+      "backend/llm/template_provider.py",
+      "retriever",
+      "Connector",
+      "MCP",
+      "public API",
+      "frontend",
+      "database",
+      "configuration",
+      ".env",
+      "timeouts",
+      "acceptance fixtures",
+      "any fourth test file"
+    ]
+  },
+  "root_cause_tests": [
+    "test_practice_completed_course_blocks_varied_course_tool_queries_and_generates_once",
+    "test_practice_retrieve_and_course_tool_share_course_completion_convergence",
+    "test_first_course_tool_can_add_authorized_evidence_then_second_query_is_blocked",
+    "test_successful_zero_new_course_tool_does_not_consume_multiple_budgets",
+    "test_practice_course_completion_never_skips_missing_external_source",
+    "test_practice_course_convergence_requires_current_authorized_indexed_evidence",
+    "test_practice_abstain_normalization_is_narrow_and_fail_closed",
+    "test_course_no_progress_metadata_is_bounded_and_sanitized",
+    "test_action_decision_prompt_has_completed_source_termination_contract"
+  ],
+  "test_requirements": {
+    "varied_query_loop": "After initial retrieve completes course, prepared repeated course_retriever queries cause zero actual gateway calls and exactly one Practice generation.",
+    "equivalent_course_completion": "retrieve and course_retriever converge consistently once the course slot is safely completed.",
+    "first_legal_course_tool": "A first course tool call is allowed when course is incomplete and may add authorized evidence.",
+    "zero_progress": "One successful zero-new-evidence call cannot consume multiple tool budgets.",
+    "external_missing": "paper, standard, vulnerability/NVD and project/GitHub requirements are not skipped.",
+    "fail_closed": "empty, untrusted, cross-course, mismatched or non-INDEXED evidence cannot trigger ANSWER.",
+    "abstain_scope": "Only the narrowly ready Practice state is normalized; general ABSTAIN behavior is unchanged.",
+    "privacy": "No raw payload, full chunk, sensitive query or credential enters state/log/trace/API.",
+    "prompt_delivery": "The actual Planner messages contain the auxiliary termination rules."
+  },
+  "regression_matrix": {
+    "modified_test_file": [
+      "tests/test_agent_orchestration.py full file"
+    ],
+    "practice_frozen": [
+      "tests/test_practice_grounding_contract.py: existing 48 tests"
+    ],
+    "run_only_no_modify": [
+      "tests/test_j3_agent_evidence.py",
+      "tests/test_l1_agent_grounding.py",
+      "tests/test_r3_grounded_answer_contract.py",
+      "tests/test_llm_provider.py",
+      "Flow 03 and Flow 08 nodes in tests/test_api_endpoints.py",
+      "tests/test_phase3_e2e.py::test_phase3_full_demo_flow_offline"
+    ],
+    "must_preserve": [
+      "course-only Practice",
+      "course+paper/standard/vulnerability/project mixed evidence",
+      "prompt injection rejection",
+      "cross-course and non-INDEXED rejection",
+      "forged external provenance rejection",
+      "evidence-insufficient abstain",
+      "GroundedSpanAnswer compatibility",
+      "maximum two generation candidates",
+      "no Planner/retrieve/MCP/Connector/tool replay during generation retry",
+      "8P candidate rejection observability and privacy"
+    ],
+    "full_pytest": {
+      "fresh_isolated_basetemp": true,
+      "failed": 0,
+      "errors": 0,
+      "skips_xfails_warnings": "reported separately; no unexplained new skip; skips and xfails are not passes",
+      "baseline_context": "8P had 539 passed, 2 explained live-connector skips, 0 xfail and 22 warnings"
+    }
+  },
+  "security_invariants": [
+    "Practice and Citation Guards remain fail-closed and unchanged",
+    "GroundedPracticeGuide schema and public API remain unchanged",
+    "8P exact/contiguous claim contract, retry classification, whole-candidate audit, two-candidate limit and sanitized tuples remain intact",
+    "ANSWER is only entry to existing Practice preflight/generation/Guard and is not a success declaration",
+    "course authorization, INDEXED state and document/chunk matching are read-only verified",
+    "missing external required sources cannot be replaced by course evidence",
+    "trusted external provenance mapping remains isolated from local course mapping",
+    "no server rewrite of claim/source/span",
+    "no max-step/tool-budget/retry increase",
+    "S2, fixed question and retrieval order remain unchanged"
+  ],
+  "forbidden_repairs": [
+    "globally rewrite every ABSTAIN with evidence to ANSWER",
+    "depend on an assumed 8Q raw tool result shape",
+    "modify or lower a Guard",
+    "add course to the trusted-external evidence type set",
+    "delete S2 or alter retrieval ordering",
+    "increase max_steps, max_tool_calls or business retries",
+    "skip a missing external source",
+    "treat any single evidence item as sufficient",
+    "make prompt wording the only defense",
+    "rollback any 8P claim/retry behavior"
+  ],
+  "rollback": {
+    "scope": "only the future 8U delta in the three whitelisted files",
+    "baseline_hashes": {
+      "backend/agent/orchestrator.py": "722753e0ec393010db51c25e101e86d4df133914db4ecea457a4fa0120d3a020",
+      "backend/llm/prompts.py": "12c30cd6fdd5d3a681fc9ea9b25501d3d39fccfc6cc3ddd7ab22cb0fed3a1ba9",
+      "tests/test_agent_orchestration.py": "fd3b5e2ff1a4c57db1cf57171f3e2056b19e6c1a622feb139c8a770491d8d80f"
+    },
+    "must_preserve": "all pre-8S and 8P functionality",
+    "database_migration": false
+  },
+  "command_8T_review_challenges": [
+    "Verify the current-course trusted INDEXED readiness check and fail-closed storage behavior.",
+    "Verify ABSTAIN normalization is Practice-only and cannot promote incomplete evidence.",
+    "Verify local course tool classification cannot alter trusted external provenance.",
+    "Verify no-progress uses only current-run server new_evidence_count, not reconstructed 8Q payload assumptions.",
+    "Verify missing external sources still route to trusted tools or abstain.",
+    "Verify the first legitimate course tool remains possible and cross-course/non-INDEXED evidence remains rejected.",
+    "Verify prompt changes are auxiliary and deterministic behavior is server-enforced.",
+    "Verify every 8P claim/retry/privacy guarantee remains intact."
+  ],
+  "command_8U_gate": {
+    "requires": "8T APPROVED_FOR_IMPLEMENTATION and command_8U_allowed=true",
+    "success_output": "IMPLEMENTATION_READY_FOR_FLOW04_PLANNER_ACCEPTANCE",
+    "command_8V_allowed": true,
+    "on_scope_expansion": "SCOPE_REVIEW_REQUIRED"
+  },
+  "command_8V_minimum_acceptance": {
+    "scope": "Flow 04 positive only",
+    "reuse_without_rerun": [
+      "H5 and F01-F15",
+      "the other 11 browser flows",
+      "full permission matrix",
+      "8J insufficient-evidence negative control",
+      "8U directed and full pytest regressions"
+    ],
+    "environment": "fresh isolated runtime using the approved 8K host_unsandboxed launch profile",
+    "fixture": "both the complete S1 target and the S2 distractor are INDEXED and present",
+    "input": "the same frozen Flow 04 question",
+    "browser_submissions": 1,
+    "semantic_runs": 1,
+    "orchestration_pass": [
+      "initial retrieve is allowed",
+      "no repeated course_retriever is executed after course completion",
+      "if Planner requests redundant course retrieval, a bounded server normalization reason is persisted and actual course tool count remains zero",
+      "Planner direct ANSWER is accepted without manufacturing a retry"
+    ],
+    "answer_pass": [
+      "COMPLETED / ANSWERED",
+      "DeepSeek and fallback_used=false",
+      "seven fields and exactly six steps",
+      "every claim passes unchanged Practice/Citation Guards",
+      "S2 is not used outside its single-sentence scope",
+      "at most two candidates and no upstream replay"
+    ],
+    "final_gate": "Update only Flow 04 in F16/F17; V6 PASS requires 12/12 browser flows, R1-R16 16/16 and no open P0/P1."
+  },
+  "next_command": "8T",
+  "auto_execute_next": false
+}
